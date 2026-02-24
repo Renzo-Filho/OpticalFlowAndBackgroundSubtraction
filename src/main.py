@@ -1,3 +1,4 @@
+import os
 import cv2
 import time
 import numpy as np
@@ -16,7 +17,7 @@ from utils.benchmarker import FlowBenchmarker
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(4)
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -26,21 +27,21 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
-            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
-            CartoonEffect(),     # Adds a comic-book aesthetic
-            NegativeEffect(),    # Classic high-contrast look
+            #HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
+            #CartoonEffect(),     # Adds a comic-book aesthetic
+            #NegativeEffect(),    # Classic high-contrast look
             TimeTunnelEffect(max_clones=10, frame_delay=15),
-            SolidCloneEffect(max_clones=4, frame_delay=8),
-            DrosteTunnelEffect(scale_factor=0.94), # Faster recession
+            #SolidCloneEffect(max_clones=4, frame_delay=8),
+            #DrosteTunnelEffect(scale_factor=0.94), # Faster recession
             DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
-            ShowMaskEffect(),
+            #ShowMaskEffect(),
             FluidPaintEffect(decay=0.985),
-            GridWarpEffect(step=40, amplitude=3.0),
-            MotionTrailEffect(trail_length=0.95),
+            GridWarpEffect(step=40, amplitude=10.0),
+            #MotionTrailEffect(trail_length=0.95),
             ArrowEffect(step=30)
         ]
         self.current_idx = 0
-        self.effect_duration = 20.0
+        self.effect_duration = 30.0
         self.start_time = time.time()
         
         # 4. Window & HUD Setup
@@ -143,12 +144,36 @@ class ExhibitionApp:
 
         return False
     
-    
-
     def cleanup(self):
-        self.cap.release()
-        cv2.destroyAllWindows()
+        """
+        Safely shuts down the application and resets the camera.
+        """
+        print("Cleaning up and resetting camera settings...")
+        
+        # 1. Reset Camera Settings (Linux/Ubuntu v4l2 commands)
+        # These commands revert the C922 to its default Auto modes.
+        try:
+            # 3 = Auto Exposure on many cameras (V4L2_EXPOSURE_AUTO)
+            os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=3") 
+            # 1 = Enable Auto Focus
+            os.system("v4l2-ctl -d /dev/video0 --set-ctrl=focus_auto=1")
+            print("Camera Auto-features restored.")
+        except Exception as e:
+            print(f"Note: Could not reset camera via terminal: {e}")
 
+        # 2. Release hardware
+        if self.cap.isOpened():
+            self.cap.release()
+            
+        # 3. Close GUI
+        cv2.destroyAllWindows()
+        print("Exhibition closed successfully.")
+
+# --- THE EXECUTION PART ---
 if __name__ == "__main__":
     app = ExhibitionApp()
-    app.run()
+    try:
+        app.run()
+    finally:
+        # The 'finally' block ensures cleanup runs even if the code crashes
+        app.cleanup()
