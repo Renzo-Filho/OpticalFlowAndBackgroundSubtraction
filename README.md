@@ -1,23 +1,26 @@
+---
+
+```markdown
 # Optical Flow & Background Subtraction: Scientific Exhibition System
 
-An interactive computer vision system designed for two purposes: an academic study of different **Optical Flow** algorithms and a creative application that applies real-time fluid dynamics and geometric effects to human motion.
+An interactive computer vision system designed for two purposes: an academic study of different **Optical Flow** algorithms and a creative application that applies real-time fluid dynamics, temporal recursion, and geometric effects to human motion.
 
 ## 📋 Table of Contents
 
-* [Overview](https://www.google.com/search?q=%23overview)
-* [Scientific Objectives](https://www.google.com/search?q=%23scientific-objectives)
-* [System Architecture](https://www.google.com/search?q=%23system-architecture)
-* [Optical Flow Methods](https://www.google.com/search?q=%23optical-flow-methods)
-* [Visual Effects](https://www.google.com/search?q=%23visual-effects)
-* [Getting Started](https://www.google.com/search?q=%23getting-started)
-* [Controls](https://www.google.com/search?q=%23controls)
-* [Data Collection & Analysis](https://www.google.com/search?q=%23data-collection--analysis)
+* [Overview](#overview)
+* [Scientific Objectives](#scientific-objectives)
+* [System Architecture](#system-architecture)
+* [Optical Flow Methods](#optical-flow-methods)
+* [Visual Effects Gallery](#visual-effects-gallery)
+* [Getting Started](#getting-started)
+* [Controls](#controls)
+* [Data Collection & Analysis](#data-collection--analysis)
 
 ---
 
 ## 🔍 Overview
 
-This project explores the separation of moving foregrounds (people) from static backgrounds using various Optical Flow techniques. By moving from simple background subtraction to dense motion estimation, the system achieves robust detection even in challenging exhibition environments with varying lighting.
+This project explores the separation of moving foregrounds (people) from static backgrounds using various Optical Flow techniques. By moving from simple static background subtraction to dense motion estimation, the system achieves robust detection even in challenging exhibition environments with varying lighting, solving issues like the "Statue Problem" through mathematical motion accumulators.
 
 ## 🎓 Scientific Objectives
 
@@ -29,23 +32,26 @@ This project explores the separation of moving foregrounds (people) from static 
 
 ## 🏗 System Architecture
 
-The project is built using a **Modular Object-Oriented (OOP)** design to ensure stability during long-running exhibitions.
+The project is built using a **Modular Object-Oriented (OOP)** design to ensure stability, memory safety, and easy expansion during long-running public exhibitions.
 
 ```text
 ├── main.py                # Application Controller & UI Loop
 ├── core/
-│   ├── motion.py          # Optical Flow Engine (Strategy Pattern)
-│   └── background.py      # Masking Logic (Static vs. Motion)
+│   ├── optFlow.py         # Optical Flow Engine (DIS, TV-L1, Farneback)
+│   └── background.py      # Masking Logic (Static vs. Motion with Decay)
 ├── effects/
-│   ├── baseEffect.py      # Abstract Blueprint for all effects
+│   ├── baseEffect.py      # Abstract Blueprint for all plugins
+│   ├── clones.py          # Solid temporal duplicates
+│   ├── filters.py         # Cartoon, Heatmap, and Negative styling
 │   ├── fluid.py           # Advection-based Fluid Simulation
 │   ├── geometry.py        # Grid Warp and Arrow Vectors
-|   ├── debug.py           # Binary foreground mask.
-│   └── trails.py          # Ghosting and Motion Trails   
+│   ├── timeTunnel.py      # Droste and Temporal deep tunnels
+│   ├── trails.py          # Ghosting and Motion Trails   
+│   └── debug.py           # Binary foreground mask visualization
 ├── utils/
 │   ├── hud.py             # User Interface Overlay
 │   └── benchmarker.py     # CSV Logging & Math Metrics
-└── analyze_results.py     # Data Analysis & Graphing Tool
+└── analyze_results.py     # Data Analysis & Graphing Tool (External)
 
 ```
 
@@ -53,20 +59,24 @@ The project is built using a **Modular Object-Oriented (OOP)** design to ensure 
 
 ## ⚙ Optical Flow Methods
 
-The system supports hot-swapping between three primary engines:
+The system supports hot-swapping between three primary engines on the fly:
 
-* **DIS (Dense Inverse Search):** Fast, modern CPU-based method. High temporal stability.
-* **Farneback:** Classical dense flow. Reliable and fast for standard hardware.
-* **Dual TV-L1:** High-quality variational method. Exceptional smoothness, ideal for artistic effects (high CPU cost).
+* **DIS (Dense Inverse Search):** Fast, modern CPU-based method. High temporal stability and excellent for real-time interaction.
+* **Farneback:** Classical dense flow. Reliable and computationally balanced for standard hardware.
+* **Dual TV-L1:** High-quality variational method. Exceptional smoothness, ideal for artistic effects (higher CPU cost).
 
 ---
 
-## 🎨 Visual Effects
+## 🎨 Visual Effects Gallery
 
-* **Fluid Paint:** Real-time color advection. Motion "paints" the background with swirling colors.
-* **Grid Warp:** A virtual wireframe grid that deforms in response to physical motion.
-* **Motion Trails:** Persistent "ghosting" effects that track the path of the subject.
-* **Show Mask:** A debug view illustrating the raw background subtraction logic for academic transparency.
+Thanks to the plugin architecture, each effect manages its own isolated memory and canvas:
+
+* **Fluid Paint:** Real-time color advection. Motion "paints" the background with swirling colors while keeping the subject clean.
+* **Temporal Tunnels & Clones:** Features the `TimeTunnel`, `DrosteTunnel`, and `SolidClone` effects, mapping historical frames into recursive visual depth.
+* **Geometry & Vectors:** `GridWarp` deforms a virtual wireframe based on physical motion, while `Arrows` visualizes the raw mathematical vector fields.
+* **Motion Trails:** Persistent `GhostTrails` and `MotionTrails` that track the path of the subject with adjustable decay.
+* **Artistic Filters:** Real-time processing applying `Cartoon`, `Heatmap`, and `Negative` aesthetics to the motion masks.
+* **Show Mask (Debug):** A scientific view illustrating the raw background subtraction logic for academic transparency.
 
 ---
 
@@ -75,13 +85,13 @@ The system supports hot-swapping between three primary engines:
 ### Prerequisites
 
 * Python 3.8+
-* OpenCV (`opencv-contrib-python` required for advanced flow methods)
-* Pandas & Matplotlib (for data analysis)
+* OpenCV (`opencv-contrib-python` required for advanced flow methods like DIS and TV-L1)
+* Pandas & Matplotlib (for data analysis/graphing)
 
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/optical-flow-exhibition.git
+git clone [https://github.com/yourusername/optical-flow-exhibition.git](https://github.com/yourusername/optical-flow-exhibition.git)
 cd optical-flow-exhibition
 pip install -r requirements.txt
 
@@ -90,7 +100,7 @@ pip install -r requirements.txt
 ### Running the System
 
 ```bash
-python main.py
+python src/main.py
 
 ```
 
@@ -98,20 +108,23 @@ python main.py
 
 ## ⌨ Controls
 
+The application is designed to be controlled via keyboard during an exhibition:
+
 | Key | Action |
 | --- | --- |
-| `n` | **Next Effect:** Cycle through visual styles. |
+| `n` | **Next Effect:** Cycle through the visual styles playlist. |
 | `m` | **Toggle Mask:** Switch between Static Subtraction and Motion Masking. |
 | `o` | **Swap Engine:** Cycle between DIS, TV-L1, and Farneback engines. |
 | `b` | **Capture BG:** Capture a new static background model (Static mode only). |
+| `r` | **Reset:** Clears the internal memory/canvas of the current effect. |
 | `d` | **HUD:** Toggle on-screen information overlay. |
-| `q` | **Quit:** Safely close the application. |
+| `q` / `Esc` | **Quit:** Safely close the application. |
 
 ---
 
 ## 📊 Data Collection & Analysis
 
-The system automatically logs performance data to `exhibition_data.csv` every 0.5 seconds.
+The system automatically logs performance data to `data/csv/exhibition_data.csv` every 0.5 seconds to avoid bottlenecking the framerate.
 
 **Metrics Collected:**
 
@@ -119,11 +132,4 @@ The system automatically logs performance data to `exhibition_data.csv` every 0.
 * **Energy:** Mean magnitude of motion vectors (Sensitivity).
 * **Sparsity (%):** Percentage of moving pixels (Noise detection).
 
-To generate your academic report graphs, run:
-
-```bash
-python analyze_results.py
-
 ```
-
----
