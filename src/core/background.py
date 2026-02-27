@@ -3,6 +3,7 @@ import numpy as np
 import time
 from scipy import ndimage
 
+
 class BackgroundProcessor:
     def __init__(self):
         self.bg_base = None       # Static Background Model
@@ -92,54 +93,47 @@ class BackgroundProcessor:
         
         _, mask = cv2.threshold(self.flow_acc, self.NOISE_THRESHOLD, 255, cv2.THRESH_BINARY)
         return self._post_process(mask.astype(np.uint8))
-   
 
     def _post_process(self, mask, min_area_threshold=1000):
-            """
-            Advanced morphological reconstruction to fix 'missing limbs'.
-            Strategy: Bridge Gaps -> Filter by Bottom Edge & Min Area -> Fill Holes.
-            """
-            h, w = mask.shape[:2]
+        """
+        Advanced morphological reconstruction to fix 'missing limbs'.
+        Strategy: Bridge Gaps -> Filter by Bottom Edge & Min Area -> Fill Holes.
+        """
+        h, w = mask.shape[:2]
 
-            # 1. Morphological Closing (The "Bridge")
-            kernel_bridge = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_bridge, iterations=2)
+        # 1. Morphological Closing (The "Bridge")
+        kernel_bridge = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_bridge, iterations=2)
 
-            # 2. Find connected components and their stats
-            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+        # 2. Encontrar componentes conectadas e suas estatísticas
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+        
+        # 3. Identificar IDs: Toca a borda inferior, mas NÃO toca a borda superior
+        # Using Python sets makes finding unique elements and their differences much faster
+        bottom_labels = set(labels[h - 1, :]) - {0}
+        top_labels = set(labels[0, :]) - {0}
+        
+        # Equivalent to your original logic: finding items in bottom that aren't in top
+        target_labels = bottom_labels - top_labels 
+
+        # 4. Filtrar os componentes pela área mínima
+        # A list comprehension is faster and cleaner than a for-loop with .append()
+        valid_labels = [
+            label for label in target_labels 
+            if stats[label, cv2.CC_STAT_AREA] >= min_area_threshold
+        ]
+        
+        # 5. Construir a máscara base filtrada
+        filtered_mask = np.zeros_like(mask)
+        if valid_labels:
+            # np.isin is already vectorized and efficient for applying the mask
+            filtered_mask[np.isin(labels, valid_labels)] = 255
             
-            # 3. Identify component IDs touching bottom and top borders
-            bottom_labels = set(np.unique(labels[h - 1, :])) - {0}
-            top_labels = set(np.unique(labels[0, :])) - {0}
-            
-            # Keep only labels that touch bottom but NOT top
-            valid_labels = bottom_labels - top_labels
-            
-            # 4. Filter components by minimum area
-            area_filtered_labels = []
-            for label in valid_labels:
-                area = stats[label, cv2.CC_STAT_AREA]
-                if area >= min_area_threshold:
-                    area_filtered_labels.append(label)
-            
-            # 5. Build the filtered mask
-            filtered_mask = np.zeros_like(mask)
-            if len(valid_labels) > 0:
-                filtered_mask[np.isin(labels, valid_labels)] = 255
+        # 6. Tapar os buracos internos (Fill Holes)
+        filtered_mask = ndimage.binary_fill_holes(filtered_mask).astype(np.uint8) * 255
+
+        # 7. Aplicar a dilatação
+        kernel_dilation = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        dilated_mask = cv2.dilate(filtered_mask, kernel_dilation, iterations=1)
                 
-            # 6. Tapar os buracos internos (Fill Holes)
-            # ndimage.binary_fill_holes retorna um array booleano (True/False).
-            # Convertendo de volta para 0 e 255 (padrão OpenCV) para evitar bugs nas próximas etapas
-            filtered_mask = ndimage.binary_fill_holes(filtered_mask).astype(np.uint8) * 255
-
-            # 7. Definir o kernel (elemento estruturante)
-            # O tamanho do kernel define o quão "grossa" será a dilatação a cada passo.
-            # MORPH_ELLIPSE costuma gerar bordas mais suaves do que MORPH_RECT para silhuetas humanas/orgânicas.
-            kernel_dilation = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-
-            # 8. Aplicar a dilatação
-            # O parâmetro 'iterations' controla quantas vezes a dilatação será repetida.
-            # Aumente o tamanho do kernel ou o número de iterações para expandir mais a máscara.
-            dilated_mask = cv2.dilate(filtered_mask, kernel_dilation, iterations=1)
-                    
-            return dilated_mask
+        return dilated_mask
