@@ -24,6 +24,14 @@ class ExhibitionApp:
         # 2. Engine Setup
         self.flow_engine = OpticalFlowEngine(scale=0.5)
         self.bg_processor = BackgroundProcessor()
+
+        # HUD names
+        self.mask_modes_names = [
+            "Static: YCrCb + Otsu", 
+            "Static: GrabCut", 
+            "AI: Selfie Segmenter", 
+            "AI: DeepLab V3"
+        ]
         
         # 3. Effects Playlist
         self.effects = [
@@ -56,9 +64,9 @@ class ExhibitionApp:
         # You can change (1280, 720) to (1920, 1080) if you have a Full HD screen
         cv2.resizeWindow(self.window_name, 1280, 720)
 
-        cv2.createTrackbar("Peso Y", self.window_name, 30, 300, self.update_weights)
-        cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
-        cv2.createTrackbar("Peso Cb", self.window_name, 120, 300, self.update_weights)
+        #cv2.createTrackbar("Peso Y", self.window_name, 30, 300, self.update_weights)
+        #cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
+        #cv2.createTrackbar("Peso Cb", self.window_name, 120, 300, self.update_weights)
 
         # 5. Optical Flow Setup
         self.flow_methods = ["DIS", "TVL1", "FARNEBACK"]
@@ -98,20 +106,18 @@ class ExhibitionApp:
                 print(f"Error in {current_effect.name}: {e}")
                 output = frame
 
-            # --- HUD & Status Logic ---
-            is_flow_mode = self.bg_processor.use_flow_mask      # Determine the mode label
-            method_label = "MODE: " + ("Motion (Flow)" if is_flow_mode else "Static")
+           # --- HUD & Status Logic ---
+            # Pega o nome do modo atual da nossa lista
+            method_label = f"MODO: {self.mask_modes_names[self.bg_processor.mode]}"
 
             status_parts = []
-            # Only show the Engine if we are in Flow Mode
-            if is_flow_mode:
-                status_parts.append(f"ENGINE: {self.flow_engine.method}")
-
-            # Always show the background warning if it's missing
-            if not is_flow_mode and self.bg_processor.bg_base is None:
+            
+            # Alerta se estivermos em modo estático e não houver background
+            if self.bg_processor.mode in [0, 1] and self.bg_processor.bg_base is None:
                 status_parts.append("No BG captured (Press 'b')")
 
             full_status = " | ".join(status_parts)
+
             self.hud.render(
                 output, 
                 current_effect.name, 
@@ -136,16 +142,10 @@ class ExhibitionApp:
         key = cv2.waitKey(1) & 0xFF
         if key in [ord('q'), 27]: return True
         elif key == ord('n'): self.next_effect()
-        elif key == ord('m'): self.bg_processor.set_mode(not self.bg_processor.use_flow_mask)
+        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 4
         elif key == ord('b'): self.bg_processor.capture_static_model(self.cap)
         elif key == ord('d'): self.hud.toggle()
         elif key == ord('r'): self.effects[self.current_idx].reset()
-        if key == ord('o'): # Cycle Optical Flow Engines
-            self.flow_idx = (self.flow_idx + 1) % len(self.flow_methods)
-            new_method = self.flow_methods[self.flow_idx]
-            self.flow_engine.set_method(new_method)
-            print(f"Switched Flow Engine to: {new_method}")
-
         return False
     
     def cleanup(self):

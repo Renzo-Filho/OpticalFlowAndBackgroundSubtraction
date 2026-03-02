@@ -1,143 +1,203 @@
 import cv2
 import numpy as np
 import time
-from scipy import ndimage
-
+import mediapipe as mp
+import os
 
 class BackgroundProcessor:
-    def __init__(self):
-        self.bg_base = None       # Static Background Model
-        self.flow_acc = None      # Motion Accumulator
-        self.use_flow_mask = False # Toggle: False=Static, True=Flow
-        
-        # Ported Parameters from your script
-        self.BIG_K_SIZE = 31
-        self.SMALL_K_SIZE = 11
-        self.NOISE_THRESHOLD = 2.0
-        self.DECAY = 0.90
+    # Constantes dos Modos
+    MODE_OTSU = 0
+    MODE_GRABCUT = 1
+    MODE_AI_SELFIE = 2
+    MODE_AI_DEEPLAB = 3
 
+    def __init__(self):
+        self.mode = self.MODE_OTSU
+        self.bg_base = None       
+        
+        # Pesos do Modo Estático (Otsu e GrabCut)
         self.weight_y = 0.3
         self.weight_cr = 1.2
         self.weight_cb = 1.2
 
-    def set_mode(self, use_flow):
-        """Switches between Static BG and Optical Flow masking."""
-        self.use_flow_mask = use_flow
+        # Memória exigida pelo GrabCut
+        self.bgdModel = np.zeros((1, 65), np.float64)
+        self.fgdModel = np.zeros((1, 65), np.float64)
+
+        # Memória das IAs
+        self.current_ai_mask = None
+        self.seg_selfie = None
+        self.seg_deeplab = None
+        
+        self._init_ai_models()
+
+    def _init_ai_models(self):
+        """Inicializa os modelos assíncronos do MediaPipe."""
+        BaseOptions = mp.tasks.BaseOptions
+        ImageSegmenter = mp.tasks.vision.ImageSegmenter
+        ImageSegmenterOptions = mp.tasks.vision.ImageSegmenterOptions
+        VisionRunningMode = mp.tasks.vision.RunningMode
+
+        # Callback universal para atualizar a máscara assíncrona
+        def _save_result(result, output_image: mp.Image, timestamp_ms: int):
+            if result.category_mask is not None:
+                self.current_ai_mask = result.category_mask.numpy_view().copy()
+
+        # Tenta carregar o Selfie Segmenter
+        if os.path.exists('selfie_segmenter_landscape.tflite'):
+            options_selfie = ImageSegmenterOptions(
+                base_options=BaseOptions(model_asset_path='selfie_segmenter_landscape.tflite'),
+                running_mode=VisionRunningMode.LIVE_STREAM,
+                output_category_mask=True,
+                result_callback=_save_result
+            )
+            self.seg_selfie = ImageSegmenter.create_from_options(options_selfie)
+        else:
+            print("Aviso: 'selfie_segmenter_landscape.tflite' nao encontrado.")
+
+        # Tenta carregar o DeepLab
+        if os.path.exists('deeplabv3.tflite'):
+            options_deeplab = ImageSegmenterOptions(
+                base_options=BaseOptions(model_asset_path='deeplabv3.tflite'),
+                running_mode=VisionRunningMode.LIVE_STREAM,
+                output_category_mask=True,
+                result_callback=_save_result
+            )
+            self.seg_deeplab = ImageSegmenter.create_from_options(options_deeplab)
+        else:
+            print("Aviso: 'deeplabv3.tflite' nao encontrado.")
 
     def capture_static_model(self, cap, num_frames=100):
-        """
-        Ported from capture_background_average.
-        Averages frames to create a clean background model.
-        """
-        print("Capturing background... Please stay out of frame.")
+        print("Capturando background... Por favor, saia da frente.")
         acc = None
         count = 0
-        
-        # Settle time (1 second)
         time.sleep(1.0)
         
         for _ in range(num_frames):
             ret, frame = cap.read()
             if not ret: continue
-            frame = cv2.flip(frame, 1) # Consistency with pipeline
+            frame = cv2.flip(frame, 1)
             f_f = frame.astype(np.float32)
             acc = f_f if acc is None else acc + f_f
             count += 1
             
         if acc is not None:
             self.bg_base = (acc / count).astype(np.uint8)
-            print("Background Captured!")
+            print("Background Capturado!")
             return True
         return False
 
     def get_mask(self, frame, flow):
-        """Dispatches to the correct logic based on user selection."""
-        if self.use_flow_mask:
-            return self._mask_from_flow(flow)
-        else:
-            return self._mask_from_static(frame)
+        """O Cérebro roteador. Chama o método de recorte correto."""
+        if self.mode == self.MODE_OTSU:
+            return self._mask_otsu(frame)
+        elif self.mode == self.MODE_GRABCUT:
+            return self._mask_grabcut(frame)
+        elif self.mode in [self.MODE_AI_SELFIE, self.MODE_AI_DEEPLAB]:
+            return self._mask_ai(frame)
+            
+        # Fallback
+        return np.zeros(frame.shape[:2], dtype=np.uint8)
 
-    def _mask_from_static(self, frame):
-        """
-        Ported from make_foreground_mask.
-        Uses YCrCb difference and Otsu thresholding.
-        """
+    # ==========================================
+    # 1. MÉTODO OTSU (Rápido e Clássico)
+    # ==========================================
+    def _mask_otsu(self, frame):
+        """ Uses YCrCb difference and Otsu thresholding. """
         if self.bg_base is None:
             return np.zeros(frame.shape[:2], dtype=np.uint8)
 
-        # 1. YCrCb Difference
         f_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
         b_ycc = cv2.cvtColor(self.bg_base, cv2.COLOR_BGR2YCrCb)
         diff = cv2.absdiff(f_ycc, b_ycc)
 
-        # 2. Weighted Score Port
-        # Y=0.5, Cr=1.0, Cb=1.0
-        score = (self.weight_y * diff[..., 0] + self.weight_cr * diff[..., 1] + self.weight_cb * diff[..., 2])
+        score = self.weight_y * diff[..., 0] + self.weight_cr * diff[..., 1] + self.weight_cb * diff[..., 2]
         score_u8 = np.clip(score, 0, 255).astype(np.uint8)
-
-        # 3. Otsu Thresholding
         _, mask = cv2.threshold(score_u8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
-        return self._post_process(mask)
-
-    def _mask_from_flow(self, flow):
-        """
-        Ported from make_mask_from_flow_robust.
-        Generates mask based on motion magnitude with decay.
-        """
-        h, w = flow.shape[:2]
-        if self.flow_acc is None or self.flow_acc.shape != (h, w):
-            self.flow_acc = np.zeros((h, w), dtype=np.float32)
-
-        # Magnitude of flow vectors
-        mag, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-        
-        # Accumulate with decay (solves the 'statue' problem)
-        self.flow_acc = np.maximum(mag, self.flow_acc * self.DECAY)
-        
-        _, mask = cv2.threshold(self.flow_acc, self.NOISE_THRESHOLD, 255, cv2.THRESH_BINARY)
-        return self._post_process(mask.astype(np.uint8))
-
-    def _post_process(self, mask, min_area_threshold=1000):
-        """
-        Advanced morphological reconstruction to fix 'missing limbs'.
-        Strategy: Bridge Gaps -> Filter by Bottom Edge & Min Area -> Fill Holes.
-        """
-        h, w = mask.shape[:2]
-
-        # 1. Morphological Closing (The "Bridge")
+        # Limpeza Morfológica Específica para o Otsu
         kernel_bridge = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_bridge, iterations=2)
 
-        # 2. Encontrar componentes conectadas e suas estatísticas
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
-        
-        # 3. Identificar IDs: Toca a borda inferior, mas NÃO toca a borda superior
-        # Using Python sets makes finding unique elements and their differences much faster
-        bottom_labels = set(labels[h - 1, :]) - {0}
-        top_labels = set(labels[0, :]) - {0}
-        
-        # Equivalent to your original logic: finding items in bottom that aren't in top
-        target_labels = bottom_labels - top_labels 
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        filled_mask = np.zeros_like(mask)
+        if contours:
+            contours = sorted(contours, key=cv2.contourArea, reverse=True)
+            for cnt in contours[:2]:
+                if cv2.contourArea(cnt) > 500:
+                    cv2.drawContours(filled_mask, [cnt], -1, 255, thickness=cv2.FILLED)
 
-        # 4. Filtrar os componentes pela área mínima
-        # A list comprehension is faster and cleaner than a for-loop with .append()
-        valid_labels = [
-            label for label in target_labels 
-            if stats[label, cv2.CC_STAT_AREA] >= min_area_threshold
-        ]
+        return cv2.GaussianBlur(filled_mask, (11, 11), 0)
+
+    # ==========================================
+    # 2. MÉTODO GRABCUT (Otimização de Grafos)
+    # ==========================================
+    def _mask_grabcut(self, frame):
+        if self.bg_base is None:
+            return np.zeros(frame.shape[:2], dtype=np.uint8)
+
+        h, w = frame.shape[:2]
+        scale = 0.5
+        small_frame = cv2.resize(frame, None, fx=scale, fy=scale)
+        b_ycc = cv2.cvtColor(cv2.resize(self.bg_base, None, fx=scale, fy=scale), cv2.COLOR_BGR2YCrCb)
+        f_ycc = cv2.cvtColor(small_frame, cv2.COLOR_BGR2YCrCb)
+
+        diff = cv2.absdiff(f_ycc, b_ycc)
+        score = self.weight_y * diff[..., 0] + self.weight_cr * diff[..., 1] + self.weight_cb * diff[..., 2]
+        score_u8 = np.clip(score, 0, 255).astype(np.uint8)
+
+        # Monta o mapa de probabilidades para o GrabCut
+        gc_mask = np.full(small_frame.shape[:2], cv2.GC_PR_BGD, dtype=np.uint8)
+        gc_mask[score_u8 > 20] = cv2.GC_PR_FGD
+        gc_mask[score_u8 > 80] = cv2.GC_FGD
+        gc_mask[score_u8 < 5]  = cv2.GC_BGD
+
+        has_bg = np.any((gc_mask == cv2.GC_BGD) | (gc_mask == cv2.GC_PR_BGD))
+        has_fg = np.any((gc_mask == cv2.GC_FGD) | (gc_mask == cv2.GC_PR_FGD))
+
+        if has_bg and has_fg:
+            cv2.grabCut(small_frame, gc_mask, None, self.bgdModel, self.fgdModel, 1, cv2.GC_INIT_WITH_MASK)
+            mask_small = np.where((gc_mask == cv2.GC_FGD) | (gc_mask == cv2.GC_PR_FGD), 255, 0).astype('uint8')
+        else:
+            mask_small = np.zeros(small_frame.shape[:2], np.uint8)
+
+        # Retorna para o tamanho original e suaviza as bordas
+        mask = cv2.resize(mask_small, (w, h), interpolation=cv2.INTER_NEAREST)
+        return cv2.GaussianBlur(mask, (7, 7), 0)
+
+    # ==========================================
+    # 3. MÉTODOS DE INTELIGÊNCIA ARTIFICIAL
+    # ==========================================
+    def _mask_ai(self, frame):
+        h, w = frame.shape[:2]
         
-        # 5. Construir a máscara base filtrada
-        filtered_mask = np.zeros_like(mask)
-        if valid_labels:
-            # np.isin is already vectorized and efficient for applying the mask
-            filtered_mask[np.isin(labels, valid_labels)] = 255
+        # O MediaPipe exige RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        ts = int(time.time() * 1000)
+
+        # Envia a imagem apenas para a IA que estiver ativa no momento
+        try:
+            if self.mode == self.MODE_AI_SELFIE and self.seg_selfie:
+                self.seg_selfie.segment_async(mp_image, ts)
+            elif self.mode == self.MODE_AI_DEEPLAB and self.seg_deeplab:
+                self.seg_deeplab.segment_async(mp_image, ts)
+        except Exception:
+            pass # Ignora erros de timestamp repetido caso a câmera engasgue
+
+        # Retorna a máscara processada de forma assíncrona (se já houver alguma)
+        if self.current_ai_mask is not None:
+            mask_resized = cv2.resize(self.current_ai_mask, (w, h), interpolation=cv2.INTER_NEAREST)
             
-        # 6. Tapar os buracos internos (Fill Holes)
-        filtered_mask = ndimage.binary_fill_holes(filtered_mask).astype(np.uint8) * 255
-
-        # 7. Aplicar a dilatação
-        kernel_dilation = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        dilated_mask = cv2.dilate(filtered_mask, kernel_dilation, iterations=1)
+            # === CORREÇÃO DA INVERSÃO ===
+            if self.mode == self.MODE_AI_SELFIE:
+                # O Selfie Segmenter mapeia a Pessoa como 0 e o Fundo como 1 (ou 255)
+                # Queremos Pessoa = 255 (Branco) e Fundo = 0 (Preto)
+                binary_mask = np.where(mask_resized == 0, 255, 0).astype(np.uint8)
+            else:
+                # O DeepLab mapeia o Fundo como 0 e a Pessoa/Objetos como > 0 (ex: 15)
+                binary_mask = np.where(mask_resized > 0, 255, 0).astype(np.uint8)
                 
-        return dilated_mask
+            return binary_mask
+        else:
+            return np.zeros((h, w), dtype=np.uint8)
