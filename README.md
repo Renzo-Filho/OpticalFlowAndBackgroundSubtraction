@@ -1,6 +1,3 @@
----
-
-```markdown
 # Optical Flow & Background Subtraction: Scientific Exhibition System
 
 An interactive computer vision system designed for two purposes: an academic study of different **Optical Flow** algorithms and a creative application that applies real-time fluid dynamics, temporal recursion, and geometric effects to human motion.

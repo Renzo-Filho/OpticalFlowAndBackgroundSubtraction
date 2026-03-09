@@ -11,7 +11,7 @@ class BackgroundProcessor:
     MODE_AI_SELFIE = 1
 
     def __init__(self):
-        self.mode = self.MODE_OTSU
+        self.mode = self.MODE_AI_SELFIE
         self.bg_base = None       
         
         # Pesos do Modo Estático (Otsu)
