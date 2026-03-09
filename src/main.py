@@ -17,7 +17,7 @@ from utils.benchmarker import FlowBenchmarker
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(4) # FIXME
+        self.cap = cv2.VideoCapture(0) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
