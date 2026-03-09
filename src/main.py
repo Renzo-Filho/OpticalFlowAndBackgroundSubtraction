@@ -28,9 +28,7 @@ class ExhibitionApp:
         # HUD names
         self.mask_modes_names = [
             "Static: YCrCb + Otsu", 
-            "Static: GrabCut", 
-            "AI: Selfie Segmenter", 
-            "AI: DeepLab V3"
+            "AI: Selfie Segmenter"
         ]
         
         # 3. Effects Playlist
@@ -67,11 +65,6 @@ class ExhibitionApp:
         #cv2.createTrackbar("Peso Y", self.window_name, 30, 300, self.update_weights)
         #cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
         #cv2.createTrackbar("Peso Cb", self.window_name, 120, 300, self.update_weights)
-
-        # 5. Optical Flow Setup
-        self.flow_methods = ["DIS", "TVL1", "FARNEBACK"]
-        self.flow_idx = 0
-        self.flow_engine = OpticalFlowEngine(method=self.flow_methods[self.flow_idx])
 
         # 6. Benchmark
         self.benchmarker = FlowBenchmarker("../data/csv/exhibition_data.csv", sample_interval=0.5)
@@ -113,7 +106,7 @@ class ExhibitionApp:
             status_parts = []
             
             # Alerta se estivermos em modo estático e não houver background
-            if self.bg_processor.mode in [0, 1] and self.bg_processor.bg_base is None:
+            if self.bg_processor.mode == 0 and self.bg_processor.bg_base is None:
                 status_parts.append("No BG captured (Press 'b')")
 
             full_status = " | ".join(status_parts)
@@ -142,7 +135,7 @@ class ExhibitionApp:
         key = cv2.waitKey(1) & 0xFF
         if key in [ord('q'), 27]: return True
         elif key == ord('n'): self.next_effect()
-        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 4
+        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 2        
         elif key == ord('b'): self.bg_processor.capture_static_model(self.cap)
         elif key == ord('d'): self.hud.toggle()
         elif key == ord('r'): self.effects[self.current_idx].reset()

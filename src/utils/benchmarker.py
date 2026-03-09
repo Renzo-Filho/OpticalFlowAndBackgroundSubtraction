@@ -5,12 +5,16 @@ import os
 import cv2
 
 class FlowBenchmarker:
-    def __init__(self, filename="flow_study_results.csv", sample_interval=0.5):
+    def __init__(self, filename="flow_study_results.csv", sample_interval=0.5, enabled=False):
         """
-        :param filename: Where to save the data.
-        :param sample_interval: How often to write to disk (in seconds). 
-                                0.5 means 2 logs per second.
+        :param enabled: Define como False para eventos ao vivo, evitando I/O de disco e uso de CPU.
         """
+        self.enabled = enabled
+        
+        # Se estiver desativado, nem inicializamos as variáveis de arquivo
+        if not self.enabled:
+            return
+
         self.filename = filename
         self.sample_interval = sample_interval
         self.last_log_time = 0
@@ -24,9 +28,12 @@ class FlowBenchmarker:
 
     def log(self, method_name, flow, latency_ms):
         """
-        Smart logging: checks if enough time has passed. 
-        If yes, calculates metrics and saves. If no, does nothing.
+        Smart logging: aborta imediatamente se desativado.
         """
+        # Aborta logo de cara, poupando CPU e Disco!
+        if not self.enabled:
+            return
+
         now = time.time()
         
         # 1. THROTTLE: Stop if we logged too recently
@@ -38,7 +45,6 @@ class FlowBenchmarker:
         energy = np.mean(mag)
         
         # Sparsity: % of pixels that are moving (magnitude > 1.0)
-        # We multiply by 100 to get a readable percentage (0-100)
         sparsity = (np.count_nonzero(mag > 1.0) / mag.size) * 100
         
         timestamp_str = time.strftime("%H:%M:%S", time.localtime(now))
@@ -49,9 +55,7 @@ class FlowBenchmarker:
                 writer = csv.writer(f)
                 writer.writerow([timestamp_str, method_name, f"{latency_ms:.2f}", f"{energy:.4f}", f"{sparsity:.2f}"])
             
-            # Update the last log time ONLY after a successful write
             self.last_log_time = now
             
         except PermissionError:
-            # Failsafe: If you have the CSV open in Excel, this prevents the app from crashing
-            print("Warning: Could not write to CSV (File might be open).")
+            pass
