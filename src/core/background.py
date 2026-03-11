@@ -48,7 +48,7 @@ class BackgroundProcessor:
             if result.category_mask is not None:
                 self.current_ai_mask = result.category_mask.numpy_view().copy()
 
-        model_path = self.get_resource_path('selfie_segmenter_landscape.tflite')
+        model_path = self.get_resource_path('assets/models/selfie_segmenter_landscape.tflite')
 
         if os.path.exists(model_path):
             options_selfie = ImageSegmenterOptions(

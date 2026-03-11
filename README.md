@@ -1,29 +1,21 @@
-# Optical Flow & Background Subtraction: Scientific Exhibition System
+# Optical Flow & Background Subtraction: Interactive Exhibition System
 
-An interactive computer vision system designed for two purposes: an academic study of different **Optical Flow** algorithms and a creative application that applies real-time fluid dynamics, temporal recursion, and geometric effects to human motion.
+An interactive computer vision system designed for public exhibitions and creative applications. It applies real-time fluid dynamics, temporal recursion, and geometric effects to human motion using advanced Optical Flow and AI-based Background Subtraction.
 
 ## 📋 Table of Contents
 
 * [Overview](#overview)
-* [Scientific Objectives](#scientific-objectives)
 * [System Architecture](#system-architecture)
-* [Optical Flow Methods](#optical-flow-methods)
+* [Core Technologies](#core-technologies)
 * [Visual Effects Gallery](#visual-effects-gallery)
-* [Getting Started](#getting-started)
-* [Controls](#controls)
-* [Data Collection & Analysis](#data-collection--analysis)
+* [🚀 Quick Start (1-Click Setup)](#-quick-start-1-click-setup)
+* [⌨️ Controls](#️-controls)
 
 ---
 
 ## 🔍 Overview
 
-This project explores the separation of moving foregrounds (people) from static backgrounds using various Optical Flow techniques. By moving from simple static background subtraction to dense motion estimation, the system achieves robust detection even in challenging exhibition environments with varying lighting, solving issues like the "Statue Problem" through mathematical motion accumulators.
-
-## 🎓 Scientific Objectives
-
-1. **Algorithm Comparison:** Evaluate the efficiency and accuracy of **Farneback**, **DIS**, and **Dual TV-L1** algorithms.
-2. **Robustness Analysis:** Study the "Statue Problem" (disappearance of subjects during pauses) and solve it using temporal decay accumulators.
-3. **Performance Benchmarking:** Quantify the trade-off between computational latency (ms) and motion sensitivity (Energy).
+This project isolates moving foregrounds (people) from static backgrounds to apply stunning visual effects in real-time. Designed specifically for totens, interactive displays, and live events, it features a highly scalable, automated setup process that requires zero terminal knowledge for the end-user (monitors/staff).
 
 ---
 
@@ -32,35 +24,37 @@ This project explores the separation of moving foregrounds (people) from static 
 The project is built using a **Modular Object-Oriented (OOP)** design to ensure stability, memory safety, and easy expansion during long-running public exhibitions.
 
 ```text
-├── main.py                # Application Controller & UI Loop
-├── core/
-│   ├── optFlow.py         # Optical Flow Engine (DIS, TV-L1, Farneback)
-│   └── background.py      # Masking Logic (Static vs. Motion with Decay)
-├── effects/
-│   ├── baseEffect.py      # Abstract Blueprint for all plugins
-│   ├── clones.py          # Solid temporal duplicates
-│   ├── filters.py         # Cartoon, Heatmap, and Negative styling
-│   ├── fluid.py           # Advection-based Fluid Simulation
-│   ├── geometry.py        # Grid Warp and Arrow Vectors
-│   ├── timeTunnel.py      # Droste and Temporal deep tunnels
-│   ├── trails.py          # Ghosting and Motion Trails   
-│   └── debug.py           # Binary foreground mask visualization
-├── utils/
-│   ├── hud.py             # User Interface Overlay
-│   └── benchmarker.py     # CSV Logging & Math Metrics
-└── analyze_results.py     # Data Analysis & Graphing Tool (External)
-
+├── assets/                  # Tudo que não é código puro vai aqui
+│   ├── icons/
+│   │   ├── input.png
+│   │   └── icone.ico
+│   └── models/
+│       └── selfie_segmenter_landscape.tflite
+├── prototypes/              # Arquivos de estudo e rascunhos antigos
+│   ├── backSubtr.py         
+│   └── (todos os scripts que estavam em src/tests/)
+├── src/                     # Apenas o que roda no evento
+│   ├── core/
+│   ├── effects/
+│   ├── utils/               # (Agora conterá apenas o hud.py)
+│   └── main.py
+├── demo.bat
+├── demo.sh
+├── setup_win.bat
+├── setup_linux.sh
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## ⚙ Optical Flow Methods
+## ⚙ Core Technologies
 
-The system supports hot-swapping between three primary engines on the fly:
+The system supports hot-swapping between two primary masking engines on the fly, depending on the environment:
 
-* **DIS (Dense Inverse Search):** Fast, modern CPU-based method. High temporal stability and excellent for real-time interaction.
-* **Farneback:** Classical dense flow. Reliable and computationally balanced for standard hardware.
-* **Dual TV-L1:** High-quality variational method. Exceptional smoothness, ideal for artistic effects (higher CPU cost).
+1. **AI Selfie Segmenter (MediaPipe):** Uses a lightweight neural network (`selfie_segmenter_landscape.tflite`) for robust semantic segmentation. Ideal for dynamic environments where the background might change or lighting is inconsistent.
+2. **Static Background Subtraction (YCrCb + Otsu):** A classic, ultra-fast method that requires capturing an empty room first. Great for controlled studio lighting.
+3. **Optical Flow (DIS):** Uses the Dense Inverse Search (DIS) algorithm on the `ULTRAFAST` preset to calculate precise pixel-by-pixel motion vectors for the interactive effects.
 
 ---
 
@@ -68,64 +62,48 @@ The system supports hot-swapping between three primary engines on the fly:
 
 Thanks to the plugin architecture, each effect manages its own isolated memory and canvas:
 
-* **Fluid Paint:** Real-time color advection. Motion "paints" the background with swirling colors while keeping the subject clean.
 * **Temporal Tunnels & Clones:** Features the `TimeTunnel`, `DrosteTunnel`, and `SolidClone` effects, mapping historical frames into recursive visual depth.
+* **Fluid Paint:** Real-time color advection. Motion "paints" the background with swirling colors while keeping the subject clean.
 * **Geometry & Vectors:** `GridWarp` deforms a virtual wireframe based on physical motion, while `Arrows` visualizes the raw mathematical vector fields.
 * **Motion Trails:** Persistent `GhostTrails` and `MotionTrails` that track the path of the subject with adjustable decay.
 * **Artistic Filters:** Real-time processing applying `Cartoon`, `Heatmap`, and `Negative` aesthetics to the motion masks.
-* **Show Mask (Debug):** A scientific view illustrating the raw background subtraction logic for academic transparency.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start (1-Click Setup)
 
-### Prerequisites
+This project is built to be deployed seamlessly across different machines at events. You do not need to manually install dependencies or open terminals.
 
-* Python 3.8+
-* OpenCV (`opencv-contrib-python` required for advanced flow methods like DIS and TV-L1)
-* Pandas & Matplotlib (for data analysis/graphing)
+**Prerequisite:** Ensure **Python 3.8+** is installed on the machine.
 
-### Installation
+### Step 1: Transfer
 
-```bash
-git clone [https://github.com/yourusername/optical-flow-exhibition.git](https://github.com/yourusername/optical-flow-exhibition.git)
-cd optical-flow-exhibition
-pip install -r requirements.txt
+Clone this repository or copy the project folder to the target machine via USB drive.
 
-```
+### Step 2: Auto-Configuration
 
-### Running the System
+Navigate to the project folder and run the setup script for your operating system. This will automatically map the folder paths and create a ready-to-use shortcut on your Desktop.
 
-```bash
-python src/main.py
+* **Windows:** Double-click `setup_win.bat`
+* **Linux (Ubuntu/Raspberry):** Right-click `setup_linux.sh` -> Properties -> Allow executing as a program. Then double-click it (or run `./setup_linux.sh` in the terminal).
 
-```
+### Step 3: Run the Exhibition
+
+Go to your Desktop and double-click the newly created **"Demo Visão Computacional"** shortcut.
+
+* *Note:* On the very first launch, it will take a few seconds to automatically download and isolate all required libraries (OpenCV, MediaPipe, etc.) in a virtual environment. Subsequent launches will be instant.
 
 ---
 
-## ⌨ Controls
+## ⌨️ Controls
 
 The application is designed to be controlled via keyboard during an exhibition:
 
 | Key | Action |
 | --- | --- |
 | `n` | **Next Effect:** Cycle through the visual styles playlist. |
-| `m` | **Toggle Mask:** Switch between Static Subtraction and Motion Masking. |
-| `o` | **Swap Engine:** Cycle between DIS, TV-L1, and Farneback engines. |
-| `b` | **Capture BG:** Capture a new static background model (Static mode only). |
+| `m` | **Toggle Mask Mode:** Switch between AI Selfie Segmenter and Static Subtraction. |
+| `b` | **Capture Background:** Capture a new static room model (Only works in Static Mode). Step out of the frame first! |
 | `r` | **Reset:** Clears the internal memory/canvas of the current effect. |
-| `d` | **HUD:** Toggle on-screen information overlay. |
+| `d` | **HUD:** Toggle on-screen debug information overlay. |
 | `q` / `Esc` | **Quit:** Safely close the application. |
-
----
-
-## 📊 Data Collection & Analysis
-
-The system automatically logs performance data to `data/csv/exhibition_data.csv` every 0.5 seconds to avoid bottlenecking the framerate.
-
-**Metrics Collected:**
-
-* **Latency (ms):** Processing time per frame.
-* **Energy:** Mean magnitude of motion vectors (Sensitivity).
-* **Sparsity (%):** Percentage of moving pixels (Noise detection).
-

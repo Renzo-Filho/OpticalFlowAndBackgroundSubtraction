@@ -12,7 +12,6 @@ from effects.clones import SolidCloneEffect
 from effects.timeTunnel import TimeTunnelEffect, DrosteTunnelEffect
 from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect
 from utils.hud import HUD
-from utils.benchmarker import FlowBenchmarker
 
 class ExhibitionApp:
     def __init__(self):
@@ -66,9 +65,6 @@ class ExhibitionApp:
         #cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
         #cv2.createTrackbar("Peso Cb", self.window_name, 120, 300, self.update_weights)
 
-        # 6. Benchmark
-        self.benchmarker = FlowBenchmarker("../data/csv/exhibition_data.csv", sample_interval=0.5)
-
     def run(self):
         while True:
             ret, frame = self.cap.read()
@@ -83,8 +79,7 @@ class ExhibitionApp:
             mask = self.bg_processor.get_mask(frame, flow)
 
             latency = (t1 - t0) * 1000
-            self.benchmarker.log(self.flow_engine.method, flow, latency)
-            
+                        
             # --- Auto Rotation ---
             elapsed = time.time() - self.start_time
             if elapsed > self.effect_duration:
