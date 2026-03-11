@@ -27,14 +27,11 @@ class BackgroundProcessor:
         self._init_ai_models()
 
     def get_resource_path(self, relative_path):
-        """ Retorna o caminho absoluto do arquivo. Funciona tanto no ambiente de desenvolvimento quanto no executável final (.exe)"""
+        """ Retorna o caminho absoluto do arquivo... """
         if hasattr(sys, '_MEIPASS'):
-            # Quando rodar via executável, o PyInstaller extrai os arquivos aqui
             return os.path.join(sys._MEIPASS, relative_path)
         
-        # Durante o desenvolvimento, o modelo está na pasta 'src'
-        # Como este script está em src/core/, subimos um nível (dirname) para achar o .tflite
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
         return os.path.join(base_dir, relative_path)
 
     def _init_ai_models(self):

@@ -1,9 +1,4 @@
 # Core Computer Vision
 numpy>=1.21.0
-opencv-contrib-python>=4.5.0  # Required for DIS and Dual TV-L1
+opencv-contrib-python>=4.5.0
 mediapipe<=0.10.14
-
-# Data Analysis & Plotting
-pandas>=1.3.0
-matplotlib>=3.4.0
-seaborn>=0.11.0

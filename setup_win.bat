@@ -6,7 +6,7 @@ echo.
 
 REM 1. Descobre o caminho absoluto exato de onde esta pasta esta agora
 set "PASTA_ATUAL=%~dp0"
-set "ALVO=%~dp0rodar_demo.bat"
+set "ALVO=%~dp0demo.bat"
 set "ATALHO=%USERPROFILE%\Desktop\Demo Visao Computacional.lnk"
 set "ICONE=%~dp0assets\icons\logo.ico"
 
