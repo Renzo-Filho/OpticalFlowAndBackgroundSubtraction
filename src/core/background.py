@@ -3,6 +3,7 @@ import numpy as np
 import time
 import mediapipe as mp
 import os
+import sys
 from scipy import ndimage 
 
 class BackgroundProcessor:
@@ -25,6 +26,17 @@ class BackgroundProcessor:
         
         self._init_ai_models()
 
+    def get_resource_path(self, relative_path):
+        """ Retorna o caminho absoluto do arquivo. Funciona tanto no ambiente de desenvolvimento quanto no executável final (.exe)"""
+        if hasattr(sys, '_MEIPASS'):
+            # Quando rodar via executável, o PyInstaller extrai os arquivos aqui
+            return os.path.join(sys._MEIPASS, relative_path)
+        
+        # Durante o desenvolvimento, o modelo está na pasta 'src'
+        # Como este script está em src/core/, subimos um nível (dirname) para achar o .tflite
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+        return os.path.join(base_dir, relative_path)
+
     def _init_ai_models(self):
         """Inicializa o modelo assíncrono do MediaPipe."""
         BaseOptions = mp.tasks.BaseOptions
@@ -36,14 +48,18 @@ class BackgroundProcessor:
             if result.category_mask is not None:
                 self.current_ai_mask = result.category_mask.numpy_view().copy()
 
-        if os.path.exists('selfie_segmenter_landscape.tflite'):
+        model_path = self.get_resource_path('selfie_segmenter_landscape.tflite')
+
+        if os.path.exists(model_path):
             options_selfie = ImageSegmenterOptions(
-                base_options=BaseOptions(model_asset_path='selfie_segmenter_landscape.tflite'),
+                base_options=BaseOptions(model_asset_path=model_path),
                 running_mode=VisionRunningMode.LIVE_STREAM,
                 output_category_mask=True,
                 result_callback=_save_result
             )
             self.seg_selfie = ImageSegmenter.create_from_options(options_selfie)
+        else:
+            print(f"AVISO: Arquivo do modelo de IA não encontrado em -> {model_path}")
 
     def capture_static_model(self, cap, num_frames=100):
         print("Capturando background... Por favor, saia da frente.")

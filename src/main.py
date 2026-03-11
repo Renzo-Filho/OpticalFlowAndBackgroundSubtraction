@@ -142,31 +142,21 @@ class ExhibitionApp:
         return False
     
     def cleanup(self):
-        """
-        Safely shuts down the application and resets the camera.
-        """
-        print("Cleaning up and resetting camera settings...")
+        print("Finalizando e resetando configurações...")
         
-        # 1. Reset Camera Settings (Linux/Ubuntu v4l2 commands)
-        # These commands revert the C922 to its default Auto modes.
-        try:
-            # 3 = Auto Exposure on many cameras (V4L2_EXPOSURE_AUTO)
-            os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=3") 
-            # 1 = Enable Auto Focus
-            os.system("v4l2-ctl -d /dev/video0 --set-ctrl=focus_auto=1")
-            print("Camera Auto-features restored.")
-        except Exception as e:
-            print(f"Note: Could not reset camera via terminal: {e}")
+        # Comandos v4l2 só funcionam no Linux
+        if os.name == 'posix':
+            try:
+                os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=3") 
+                os.system("v4l2-ctl -d /dev/video0 --set-ctrl=focus_auto=1")
+            except Exception:
+                pass
 
-        # 2. Release hardware
         if self.cap.isOpened():
             self.cap.release()
             
-        # 3. Close GUI
         cv2.destroyAllWindows()
-        print("Exhibition closed successfully.")
-
-    
+        
     def update_weights(self, val):
         """Callback chamado sempre que um slider é movido pelo mouse."""
         # Lê os valores atuais (0 a 300) da janela
@@ -182,7 +172,6 @@ class ExhibitionApp:
         
         print(f"Pesos Atualizados -> Y: {self.bg_processor.weight_y}, Cr: {self.bg_processor.weight_cr}, Cb: {self.bg_processor.weight_cb}")
 
-# --- THE EXECUTION PART ---
 if __name__ == "__main__":
     app = ExhibitionApp()
     try:
