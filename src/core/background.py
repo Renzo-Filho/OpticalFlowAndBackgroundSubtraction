@@ -115,8 +115,8 @@ class BackgroundProcessor:
 
         kernel_dilation = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         dilated_mask = cv2.dilate(filtered_mask, kernel_dilation, iterations=1)
-                
-        return cv2.GaussianBlur(dilated_mask, (11, 11), 0)
+        # cv2.GaussianBlur(dilated_mask, (11, 11), 0)
+        return dilated_mask
 
     # ==========================================
     # 1. MÉTODO OTSU (Rápido e Clássico)

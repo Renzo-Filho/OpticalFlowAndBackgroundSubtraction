@@ -16,7 +16,7 @@ from utils.hud import HUD
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(0) # FIXME
+        self.cap = cv2.VideoCapture(4) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -32,9 +32,9 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
-            #HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
-            #CartoonEffect(),     # Adds a comic-book aesthetic
-            #NegativeEffect(),    # Classic high-contrast look
+            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
+            CartoonEffect(),     # Adds a comic-book aesthetic
+            NegativeEffect(),    # Classic high-contrast look
             TimeTunnelEffect(max_clones=10, frame_delay=15),
             #SolidCloneEffect(max_clones=4, frame_delay=8),
             #DrosteTunnelEffect(scale_factor=0.94), # Faster recession

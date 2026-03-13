@@ -13,9 +13,16 @@ class ArrowEffect(BaseEffect):
         out = frame.copy()
         h, w = frame.shape[:2]
 
+        # Filtra o ruído do fundo apenas para as setas
+        if mask is not None:
+            flow_filtered = flow.copy()
+            flow_filtered[mask == 0] = 0
+        else:
+            flow_filtered = flow
+
         for y in range(self.step // 2, h, self.step):
             for x in range(self.step // 2, w, self.step):
-                fx, fy = flow[y, x]
+                fx, fy = flow_filtered[y, x]
 
                 # Ignore noise
                 if (fx**2 + fy**2) < (self.threshold**2):
@@ -28,7 +35,7 @@ class ArrowEffect(BaseEffect):
         return out
 
     def reset(self):
-        pass # Arrows don't need persistent memory
+        pass
 
 
 class GridWarpEffect(BaseEffect):
@@ -50,14 +57,20 @@ class GridWarpEffect(BaseEffect):
         as the effect covers the whole screen.
         """
         h, w = frame.shape[:2]
-        # We create a black canvas to draw the grid lines on
         out = np.zeros_like(frame)
+
+        # A MÁGICA AQUI: Filtra o ruído do fundo apenas para o grid
+        if mask is not None:
+            flow_filtered = flow.copy()
+            flow_filtered[mask == 0] = 0
+        else:
+            flow_filtered = flow
 
         # 1. Draw Vertical Lines (warped by flow)
         for x in range(0, w, self.step):
             pts = []
-            for y in range(0, h, 10): # Smoothness along the line
-                dx, dy = flow[y, min(x, w-1)]
+            for y in range(0, h, 10): 
+                dx, dy = flow_filtered[y, min(x, w-1)]
                 pts.append([x + dx * self.amplitude, y + dy * self.amplitude])
             
             pts_arr = np.array(pts, np.int32).reshape((-1, 1, 2))
@@ -67,7 +80,7 @@ class GridWarpEffect(BaseEffect):
         for y in range(0, h, self.step):
             pts = []
             for x in range(0, w, 10):
-                dx, dy = flow[min(y, h-1), x]
+                dx, dy = flow_filtered[min(y, h-1), x]
                 pts.append([x + dx * self.amplitude, y + dy * self.amplitude])
             
             pts_arr = np.array(pts, np.int32).reshape((-1, 1, 2))
@@ -76,5 +89,4 @@ class GridWarpEffect(BaseEffect):
         return out
 
     def reset(self):
-        """No persistent memory needed for this effect."""
         pass

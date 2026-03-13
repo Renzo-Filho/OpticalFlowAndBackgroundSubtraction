@@ -10,7 +10,8 @@ class OpticalFlowEngine:
         self.dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_ULTRAFAST)
         
         # Método fixo para logs e compatibilidade
-        self.method = "DIS_ULTRAFAST"
+        # self.method = "DIS_ULTRAFAST"
+        self.method = "DIS_FAST"
 
     def update(self, frame_bgr):
         gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
@@ -36,7 +37,7 @@ class OpticalFlowEngine:
         flow_small[magnitude < mag_threshold] = 0
         
         # Amplifica o movimento restante
-        flow_small = flow_small * 2
+        flow_small = flow_small * 2.5 #FIXME
 
         # 4. Upscale de volta para a resolução original
         h, w = gray.shape
