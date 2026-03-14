@@ -12,12 +12,14 @@ from effects.trails import MotionTrailEffect
 from effects.clones import SolidCloneEffect
 from effects.timeTunnel import TimeTunnelEffect, DrosteTunnelEffect
 from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect
+from effects.new_effects import CyberGlitchEffect, NeonSilhouetteEffect
+from effects.physics import WaveEquationEffect, DelaunayConstellationEffect, KineticParticleEffect
 from utils.hud import HUD
 
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(0) # FIXME
+        self.cap = cv2.VideoCapture(4) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -33,6 +35,11 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
+            WaveEquationEffect(damping=0.98),
+            DelaunayConstellationEffect(max_points=200),
+            KineticParticleEffect(),
+            CyberGlitchEffect(),
+            NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
             HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
             CartoonEffect(),     # Adds a comic-book aesthetic
             NegativeEffect(),    # Classic high-contrast look

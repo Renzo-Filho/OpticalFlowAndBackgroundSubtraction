@@ -26,9 +26,10 @@ class OpticalFlowEngine:
 
         # 2. Calcula o Fluxo com DIS
         flow_small = self.dis.calc(prev_small, curr_small, None)
+        flow_small = cv2.GaussianBlur(flow_small, (15, 15), 5.0)
 
         # 3. Limite mínimo de movimento (reduz ruído de câmera)
-        mag_threshold = 0.15 
+        mag_threshold = 1.5
         u = flow_small[..., 0]
         v = flow_small[..., 1]
         magnitude = np.hypot(u, v)

@@ -32,6 +32,10 @@ class FluidPaintEffect(BaseEffect):
             borderMode=cv2.BORDER_CONSTANT, borderValue=0
         )
 
+        kernel_zone = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (45, 45))
+        allowed_zone = cv2.dilate(mask, kernel_zone, iterations=1)
+        allowed_float = allowed_zone.astype(np.float32) / 255.0
+
         # 3. Injection: Add color where motion happens (Background only)
         mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
         hsv_inject = np.zeros((h, w, 3), dtype=np.uint8)
