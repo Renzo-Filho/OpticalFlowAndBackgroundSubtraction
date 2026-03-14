@@ -2,6 +2,7 @@ import os
 import cv2
 import time
 import numpy as np
+import tkinter as tk
 from core.optFlow import OpticalFlowEngine
 from core.background import BackgroundProcessor
 from effects.geometry import ArrowEffect, GridWarpEffect
@@ -16,7 +17,7 @@ from utils.hud import HUD
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(4) # FIXME
+        self.cap = cv2.VideoCapture(0) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -53,13 +54,27 @@ class ExhibitionApp:
         h, w = frame.shape[:2]
         self.hud = HUD(w, h)
         self.window_name = "Exhibition"
+
+        """        # --- DESCOBRE O TAMANHO DO MONITOR DINAMICAMENTE ---
+        root = tk.Tk()
+        screen_w = root.winfo_screenwidth()
+        screen_h = root.winfo_screenheight()
+        root.destroy()
         
-        # Use WINDOW_NORMAL to keep window controls (Minimize/Resize/Close)
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_FREERATIO)
         
-        # Resize to a large standard resolution to fill the screen automatically
-        # You can change (1280, 720) to (1920, 1080) if you have a Full HD screen
-        cv2.resizeWindow(self.window_name, 1280, 720)
+        # Redimensiona automaticamente para a resolução detectada
+        cv2.resizeWindow(self.window_name, screen_w, screen_h)"""
+
+        root = tk.Tk()
+        self.screen_w = root.winfo_screenwidth()
+        self.screen_h = root.winfo_screenheight()
+        self.target_ratio = self.screen_w / self.screen_h
+        root.destroy() 
+
+        # Como vamos enviar a imagem já na proporção certa, não precisamos mais do FREERATIO
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_GUI_NORMAL)
+        cv2.resizeWindow(self.window_name, self.screen_w, self.screen_h)
 
         #cv2.createTrackbar("Peso Y", self.window_name, 30, 300, self.update_weights)
         #cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
@@ -70,6 +85,20 @@ class ExhibitionApp:
             ret, frame = self.cap.read()
             if not ret: break
             frame = cv2.flip(frame, 1) # Mirror view
+
+            cam_h, cam_w = frame.shape[:2]
+            cam_ratio = cam_w / cam_h
+
+            if cam_ratio < self.target_ratio:
+                # Câmera mais "quadrada" que a tela. Cortamos o topo e a base.
+                new_h = int(cam_w / self.target_ratio)
+                y_offset = (cam_h - new_h) // 2
+                frame = frame[y_offset:y_offset+new_h, :]
+            elif cam_ratio > self.target_ratio:
+                # Câmera mais "larga" que a tela. Cortamos as laterais.
+                new_w = int(cam_h * self.target_ratio)
+                x_offset = (cam_w - new_w) // 2
+                frame = frame[:, x_offset:x_offset+new_w]
             
             # --- Processing ---
             t0 = time.time()
