@@ -24,19 +24,19 @@ This project isolates moving foregrounds (people) from static backgrounds to app
 The project is built using a **Modular Object-Oriented (OOP)** design to ensure stability, memory safety, and easy expansion during long-running public exhibitions.
 
 ```text
-├── assets/                  # Tudo que não é código puro vai aqui
+├── assets/                  
 │   ├── icons/
 │   │   ├── input.png
 │   │   └── icone.ico
 │   └── models/
 │       └── selfie_segmenter_landscape.tflite
-├── prototypes/              # Arquivos de estudo e rascunhos antigos
+├── prototypes/              
 │   ├── backSubtr.py         
-│   └── (todos os scripts que estavam em src/tests/)
-├── src/                     # Apenas o que roda no evento
+│   └── tests/
+├── src/                     
 │   ├── core/
 │   ├── effects/
-│   ├── utils/               # (Agora conterá apenas o hud.py)
+│   ├── utils/               
 │   └── main.py
 ├── demo.bat
 ├── demo.sh
