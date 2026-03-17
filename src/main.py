@@ -35,19 +35,19 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
+            ShowMaskEffect(),
+            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
+            CartoonEffect(),     # Adds a comic-book aesthetic
+            NegativeEffect(),    # Classic high-contrast 
             WaveEquationEffect(damping=0.98),
             DelaunayConstellationEffect(max_points=200),
             KineticParticleEffect(),
             CyberGlitchEffect(),
             NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
-            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
-            CartoonEffect(),     # Adds a comic-book aesthetic
-            NegativeEffect(),    # Classic high-contrast look
             TimeTunnelEffect(max_clones=10, frame_delay=15),
             #SolidCloneEffect(max_clones=4, frame_delay=8),
             #DrosteTunnelEffect(scale_factor=0.94), # Faster recession
             DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
-            ShowMaskEffect(),
             FluidPaintEffect(decay=0.985),
             GridWarpEffect(step=40, amplitude=10.0),
             #MotionTrailEffect(trail_length=0.95),
@@ -162,11 +162,17 @@ class ExhibitionApp:
         self.effects[self.current_idx].reset()
         self.start_time = time.time()
 
+    def last_effect(self):
+        self.current_idx = (self.current_idx - 1) % len(self.effects)
+        self.effects[self.current_idx].reset()
+        self.start_time = time.time()
+
     def handle_input(self):
         key = cv2.waitKey(1) & 0xFF
         if key in [ord('q'), 27]: return True
         elif key == ord('n'): self.next_effect()
-        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 2        
+        elif key == ord('l'): self.last_effect()
+        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 2   
         elif key == ord('b'): self.bg_processor.capture_static_model(self.cap)
         elif key == ord('d'): self.hud.toggle()
         elif key == ord('r'): self.effects[self.current_idx].reset()

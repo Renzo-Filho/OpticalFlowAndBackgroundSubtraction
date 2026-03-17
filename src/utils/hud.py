@@ -37,7 +37,7 @@ class HUD:
 
         # 3. Bottom: Controls (Dynamic positioning based on screen height)
         h = frame.shape[0]
-        help_text = "n:Prox | m:Modo | b:Fundo | d:HUD | q:Sair"
+        help_text = "n:Prox | l: Ante | m:Modo | b:Fundo | d:HUD | q:Sair"
         self._draw_text(frame, help_text, (20, h - 20), 0.5, self.secondary_color)
 
     def _draw_text(self, img, text, pos, scale, color):
