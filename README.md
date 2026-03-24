@@ -29,7 +29,9 @@ The project is built using a **Modular Object-Oriented (OOP)** design to ensure 
 │   │   ├── input.png
 │   │   └── icone.ico
 │   └── models/
+|       ├── pose_landmarker_lite.task
 │       └── selfie_segmenter_landscape.tflite
+|
 ├── prototypes/              
 │   ├── backSubtr.py         
 │   └── tests/
@@ -53,8 +55,9 @@ The project is built using a **Modular Object-Oriented (OOP)** design to ensure 
 The system supports hot-swapping between two primary masking engines on the fly, depending on the environment:
 
 1. **AI Selfie Segmenter (MediaPipe):** Uses a lightweight neural network (`selfie_segmenter_landscape.tflite`) for robust semantic segmentation. Ideal for dynamic environments where the background might change or lighting is inconsistent.
-2. **Static Background Subtraction (YCrCb + Otsu):** A classic, ultra-fast method that requires capturing an empty room first. Great for controlled studio lighting.
-3. **Optical Flow (DIS):** Uses the Dense Inverse Search (DIS) algorithm on the `ULTRAFAST` preset to calculate precise pixel-by-pixel motion vectors for the interactive effects.
+2. **AI Pose Landmarker (MediaPipe):** Utilizes the `pose_landmarker_lite.task` model to asynchronously track the user's bone structure and joints in real-time. This provides the precise 2D spatial coordinates required to drive physics-based hand interactions and dynamic skeletal overlays.
+3. **Static Background Subtraction (YCrCb + Otsu):** A classic, ultra-fast method that requires capturing an empty room first. Great for controlled studio lighting.
+4. **Optical Flow (DIS):** Uses the Dense Inverse Search (DIS) algorithm on the `FAST` preset to calculate precise pixel-by-pixel motion vectors for the interactive effects.
 
 ---
 
@@ -62,11 +65,12 @@ The system supports hot-swapping between two primary masking engines on the fly,
 
 Thanks to the plugin architecture, each effect manages its own isolated memory and canvas:
 
-* **Temporal Tunnels & Clones:** Features the `TimeTunnel`, `DrosteTunnel`, and `SolidClone` effects, mapping historical frames into recursive visual depth.
-* **Fluid Paint:** Real-time color advection. Motion "paints" the background with swirling colors while keeping the subject clean.
-* **Geometry & Vectors:** `GridWarp` deforms a virtual wireframe based on physical motion, while `Arrows` visualizes the raw mathematical vector fields.
-* **Motion Trails:** Persistent `GhostTrails` and `MotionTrails` that track the path of the subject with adjustable decay.
-* **Artistic Filters:** Real-time processing applying `Cartoon`, `Heatmap`, and `Negative` aesthetics to the motion masks.
+* **Temporal Tunnels & Clones:** Features the `TimeTunnel` and `DrosteTunnel` effects, mapping historical frames into recursive visual depth.
+* **Physics & Particles:** Real-time simulations including `FluidPaint` (color advection), `WaveEquation` (water ripples), `KineticParticles` (wind-blown dust), and `FlowBender` (hand-emitted energy).
+* **Geometry & Vectors:** `GridWarp` deforms a virtual wireframe based on physical motion, `Arrows` visualizes raw mathematical vector fields, and `DelaunayConstellation` builds a living cybernetic mesh.
+* **Pose & Anatomy:** Uses MediaPipe to track and draw glowing bone structures with `NeonSkeleton`.
+* **Artistic Filters:** Real-time processing applying `Cartoon`, `Heatmap`, `Negative`, `CyberGlitch`, and `NeonSilhouette` aesthetics to the motion masks.
+* **Overlays & Chroma Key:** High-quality scrolling LaTeX formulas composited seamlessly with the user via `MathChromaKey`.
 
 ---
 
@@ -102,6 +106,7 @@ The application is designed to be controlled via keyboard during an exhibition:
 | Key | Action |
 | --- | --- |
 | `n` | **Next Effect:** Cycle through the visual styles playlist. |
+| `l` | **Last Effect:** Go back to the previous effect. |
 | `m` | **Toggle Mask Mode:** Switch between AI Selfie Segmenter and Static Subtraction. |
 | `b` | **Capture Background:** Capture a new static room model (Only works in Static Mode). Step out of the frame first! |
 | `r` | **Reset:** Clears the internal memory/canvas of the current effect. |
