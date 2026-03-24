@@ -11,7 +11,7 @@ from effects.overlay import MathChromaKeyEffect
 from effects.geometry import ArrowEffect, GridWarpEffect, DelaunayConstellationEffect
 from effects.physics import WaveEquationEffect, KineticParticleEffect, FluidPaintEffect
 from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect, CyberGlitchEffect, NeonSilhouetteEffect
-from effects.temporal import TimeTunnelEffect, DrosteTunnelEffect, SolidCloneEffect, MotionTrailEffect
+from effects.temporal import TimeTunnelEffect, DrosteTunnelEffect
 from effects.debug import ShowMaskEffect
 from utils.hud import HUD
 
