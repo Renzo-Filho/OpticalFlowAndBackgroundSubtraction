@@ -7,16 +7,12 @@ from core.optFlow import OpticalFlowEngine
 from core.background import BackgroundProcessor
 from core.pose import PoseProcessor
 from effects.pose_effects import FlowBenderEffect, NeonSkeletonEffect
-from effects.chromakey import MathChromaKeyEffect
-from effects.geometry import ArrowEffect, GridWarpEffect
-from effects.fluid import FluidPaintEffect
+from effects.overlay import MathChromaKeyEffect
+from effects.geometry import ArrowEffect, GridWarpEffect, DelaunayConstellationEffect
+from effects.physics import WaveEquationEffect, KineticParticleEffect, FluidPaintEffect
+from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect, CyberGlitchEffect, NeonSilhouetteEffect
+from effects.temporal import TimeTunnelEffect, DrosteTunnelEffect, SolidCloneEffect, MotionTrailEffect
 from effects.debug import ShowMaskEffect
-from effects.trails import MotionTrailEffect
-from effects.clones import SolidCloneEffect
-from effects.timeTunnel import TimeTunnelEffect, DrosteTunnelEffect
-from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect
-from effects.new_effects import CyberGlitchEffect, NeonSilhouetteEffect
-from effects.physics import WaveEquationEffect, DelaunayConstellationEffect, KineticParticleEffect
 from utils.hud import HUD
 
 class ExhibitionApp:
@@ -42,7 +38,7 @@ class ExhibitionApp:
             ShowMaskEffect(),
             MathChromaKeyEffect(),
             FlowBenderEffect(),
-            NeonSkeletonEffect(color=(255, 50, 255)),   # Fica incrível se a pessoa dançar!
+            NeonSkeletonEffect(color=(255, 50, 255)),
             HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
             CartoonEffect(),     # Adds a comic-book aesthetic
             NegativeEffect(),    # Classic high-contrast 
@@ -52,12 +48,10 @@ class ExhibitionApp:
             CyberGlitchEffect(),
             NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
             TimeTunnelEffect(max_clones=10, frame_delay=15),
-            #SolidCloneEffect(max_clones=4, frame_delay=8),
             #DrosteTunnelEffect(scale_factor=0.94), # Faster recession
             DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
             FluidPaintEffect(decay=0.985),
             GridWarpEffect(step=40, amplitude=10.0),
-            #MotionTrailEffect(trail_length=0.95),
             ArrowEffect(step=30)
         ]
         self.current_idx = 0

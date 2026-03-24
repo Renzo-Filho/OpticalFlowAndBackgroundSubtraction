@@ -90,3 +90,65 @@ class GridWarpEffect(BaseEffect):
 
     def reset(self):
         pass
+
+class DelaunayConstellationEffect(BaseEffect):
+    """
+    Constrói uma malha geométrica viva conectada ao corpo com persistência temporal.
+    Referência Matemática: Triangulação de Delaunay
+    """
+    def __init__(self, max_points=300, line_color=(0, 255, 255), decay=0.85):
+        super().__init__("DELAUNAY_CONSTELLATION")
+        self.max_points = max_points
+        self.color = line_color
+        self.decay = decay
+        self.canvas = None
+
+    def apply(self, frame, flow, mask, **kwargs):
+        h, w = frame.shape[:2]
+        
+        if self.canvas is None or self.canvas.shape[:2] != (h, w):
+            self.canvas = np.zeros_like(frame)
+
+        # Apaga o canvas lentamente para criar o rastro do movimento
+        self.canvas = (self.canvas.astype(np.float32) * self.decay).astype(np.uint8)
+
+        # minDistance menor e maxCorners maior geram uma malha muito mais densa e rica
+        corners = cv2.goodFeaturesToTrack(mask, maxCorners=self.max_points, qualityLevel=0.005, minDistance=10)
+
+        if corners is not None and len(corners) > 3:
+            rect = (0, 0, w, h)
+            subdiv = cv2.Subdiv2D(rect)
+
+            for p in corners:
+                x, y = p[0]
+                if 0 <= x < w and 0 <= y < h:
+                    subdiv.insert((int(x), int(y)))
+
+            triangles = subdiv.getTriangleList()
+
+            for t in triangles:
+                pt1 = (int(t[0]), int(t[1]))
+                pt2 = (int(t[2]), int(t[3]))
+                pt3 = (int(t[4]), int(t[5]))
+
+                if self._is_valid(pt1, pt2, pt3, w, h, mask):
+                    cv2.line(self.canvas, pt1, pt2, self.color, 1, cv2.LINE_AA)
+                    cv2.line(self.canvas, pt2, pt3, self.color, 1, cv2.LINE_AA)
+                    cv2.line(self.canvas, pt3, pt1, self.color, 1, cv2.LINE_AA)
+                    cv2.circle(self.canvas, pt1, 2, (255, 255, 255), -1)
+
+        # Escurece um pouco o frame original para a malha neon se destacar mais
+        frame_dark = (frame.astype(np.float32) * 0.9).astype(np.uint8)
+        out = cv2.add(frame_dark, self.canvas)
+
+        return out
+
+    def _is_valid(self, p1, p2, p3, w, h, mask):
+        for x, y in [p1, p2, p3]:
+            if not (0 <= x < w and 0 <= y < h): return False
+            if mask[y, x] == 0: return False
+        return True
+
+    def reset(self):
+        self.canvas = None
+
