@@ -9,7 +9,7 @@ class FluidPaintEffect(BaseEffect):
         self.advect_gain = advect_gain
         self.canvas = None
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         
         # Initialize canvas if needed

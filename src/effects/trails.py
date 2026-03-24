@@ -8,7 +8,7 @@ class GhostTrailEffect(BaseEffect):
         self.alpha = alpha
         self.acc = None
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         if self.acc is None: self.acc = frame.astype(np.float32)
         
         # The logic from your script
@@ -33,7 +33,7 @@ class MotionTrailEffect(BaseEffect):
         self.thick_mode = thick_mode
         self.acc = None
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         """
         Blends the current frame with the history (accumulator) 
         specifically in moving areas defined by the mask.

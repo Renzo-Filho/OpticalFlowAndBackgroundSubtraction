@@ -10,7 +10,7 @@ class ShowMaskEffect(BaseEffect):
         """
         super().__init__("SHOW_MASK")
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         """
         Converts the 1-channel binary mask into a 3-channel BGR image
         so it can be displayed in the main window.

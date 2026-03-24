@@ -11,7 +11,7 @@ class CyberGlitchEffect(BaseEffect):
         super().__init__("CYBER_GLITCH")
         self.intensity = intensity_multiplier
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         out = frame.copy()
 
@@ -69,7 +69,7 @@ class NeonSilhouetteEffect(BaseEffect):
         self.color = color # Formato BGR
         self.kernel = np.ones((5, 5), np.uint8)
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         # Encontra as bordas usando gradiente morfológico (Diferença entre dilatação e erosão)
         edges = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, self.kernel)
 

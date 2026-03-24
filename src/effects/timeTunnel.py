@@ -18,7 +18,7 @@ class TimeTunnelEffect(BaseEffect):
         # Buffer stores (Isolated_Person_Image, Mask)
         self.buffer = deque(maxlen=max_clones * frame_delay + 1)
 
-    def apply(self, frame, flow, mask, pose_results=None):
+    def apply(self, frame, flow, mask, pose_results=None, **kwargs):
         h, w = frame.shape[:2]
         
         # 1. Isolate the person immediately (Black background)
@@ -72,7 +72,7 @@ class DrosteTunnelEffect(BaseEffect):
         self.scale_factor = scale_factor
         self.canvas = None
 
-    def apply(self, frame, flow, mask, pose_results=None):
+    def apply(self, frame, flow, mask, pose_results=None, **kwargs):
         h, w = frame.shape[:2]
         
         # 1. Initialize black canvas if needed

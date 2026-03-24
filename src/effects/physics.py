@@ -19,7 +19,7 @@ class WaveEquationEffect(BaseEffect):
                                 [0.5, 0, 0.5], 
                                 [0, 0.5, 0]], dtype=np.float32)
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         small_w = int(w * self.scale)
         small_h = int(h * self.scale)
@@ -79,7 +79,7 @@ class DelaunayConstellationEffect(BaseEffect):
         self.decay = decay
         self.canvas = None
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         
         if self.canvas is None or self.canvas.shape[:2] != (h, w):
@@ -143,7 +143,7 @@ class KineticParticleEffect(BaseEffect):
         self.particles = np.zeros((num_particles, 5), dtype=np.float32)
         self.num_particles = num_particles
 
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         canvas = np.zeros_like(frame)
 

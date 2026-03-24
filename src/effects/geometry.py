@@ -9,7 +9,7 @@ class ArrowEffect(BaseEffect):
         self.threshold = threshold
         self.color = color
 
-    def apply(self, frame, flow, mask=None):
+    def apply(self, frame, flow, mask=None, **kwargs):
         out = frame.copy()
         h, w = frame.shape[:2]
 
@@ -51,7 +51,7 @@ class GridWarpEffect(BaseEffect):
         self.amplitude = amplitude
         self.color = color
 
-    def apply(self, frame, flow, mask=None):
+    def apply(self, frame, flow, mask=None, **kwargs):
         """
         Draws the warped grid. Note: It does not use the mask, 
         as the effect covers the whole screen.

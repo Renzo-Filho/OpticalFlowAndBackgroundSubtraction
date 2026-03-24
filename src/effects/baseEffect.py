@@ -6,7 +6,7 @@ class BaseEffect(ABC):
         self.name = name
 
     @abstractmethod
-    def apply(self, frame, flow, mask):
+    def apply(self, frame, flow, mask, pose=None):
         """
         Each effect must implement this.
         Returns: the processed BGR image.

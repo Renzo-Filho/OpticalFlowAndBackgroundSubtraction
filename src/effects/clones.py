@@ -16,7 +16,7 @@ class SolidCloneEffect(BaseEffect):
         # Buffer to store (frame, mask) tuples
         self.buffer = deque(maxlen=max_clones * frame_delay + 1)
 
-    def apply(self, frame, flow, mask, pose_results=None):
+    def apply(self, frame, flow, mask, pose_results=None, **kwargs):
         # 1. Store current state in history
         # We store copies to prevent issues as the main loop updates frames
         self.buffer.append((frame.copy(), mask.copy()))

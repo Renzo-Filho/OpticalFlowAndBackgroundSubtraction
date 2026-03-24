@@ -5,6 +5,9 @@ import numpy as np
 import tkinter as tk
 from core.optFlow import OpticalFlowEngine
 from core.background import BackgroundProcessor
+from core.pose import PoseProcessor
+from effects.pose_effects import FlowBenderEffect, NeonSkeletonEffect
+from effects.chromakey import MathChromaKeyEffect
 from effects.geometry import ArrowEffect, GridWarpEffect
 from effects.fluid import FluidPaintEffect
 from effects.debug import ShowMaskEffect
@@ -26,6 +29,7 @@ class ExhibitionApp:
         # 2. Engine Setup
         self.flow_engine = OpticalFlowEngine(scale=0.5)
         self.bg_processor = BackgroundProcessor()
+        self.pose_processor = PoseProcessor()
 
         # HUD names
         self.mask_modes_names = [
@@ -36,6 +40,9 @@ class ExhibitionApp:
         # 3. Effects Playlist
         self.effects = [
             ShowMaskEffect(),
+            MathChromaKeyEffect(),
+            FlowBenderEffect(),
+            NeonSkeletonEffect(color=(255, 50, 255)),   # Fica incrível se a pessoa dançar!
             HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
             CartoonEffect(),     # Adds a comic-book aesthetic
             NegativeEffect(),    # Classic high-contrast 
@@ -114,7 +121,7 @@ class ExhibitionApp:
             
             mask = self.bg_processor.get_mask(frame, flow)
 
-            latency = (t1 - t0) * 1000
+            pose = self.pose_processor.process(frame)
                         
             # --- Auto Rotation ---
             elapsed = time.time() - self.start_time
@@ -125,12 +132,12 @@ class ExhibitionApp:
             # --- Render Effect ---
             current_effect = self.effects[self.current_idx]
             try:
-                output = current_effect.apply(frame, flow, mask)
+                output = current_effect.apply(frame, flow, mask, pose=pose)
             except Exception as e:
                 print(f"Error in {current_effect.name}: {e}")
                 output = frame
 
-           # --- HUD & Status Logic ---
+            # --- HUD & Status Logic ---
             # Pega o nome do modo atual da nossa lista
             method_label = f"MODO: {self.mask_modes_names[self.bg_processor.mode]}"
 
