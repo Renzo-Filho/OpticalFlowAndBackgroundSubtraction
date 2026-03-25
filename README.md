@@ -31,7 +31,6 @@ The project is built using a **Modular Object-Oriented (OOP)** design to ensure 
 │   └── models/
 |       ├── pose_landmarker_lite.task
 │       └── selfie_segmenter_landscape.tflite
-|
 ├── prototypes/              
 │   ├── backSubtr.py         
 │   └── tests/

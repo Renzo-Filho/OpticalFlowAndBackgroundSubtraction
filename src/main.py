@@ -18,7 +18,7 @@ from utils.hud import HUD
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(4) # FIXME
+        self.cap = cv2.VideoCapture(0) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -61,19 +61,22 @@ class ExhibitionApp:
         # 4. Window & HUD Setup
         h, w = frame.shape[:2]
         self.hud = HUD(w, h)
+        self.hud.active = False
         self.window_name = "Exhibition"
 
-        """        # --- DESCOBRE O TAMANHO DO MONITOR DINAMICAMENTE ---
-        root = tk.Tk()
-        screen_w = root.winfo_screenwidth()
-        screen_h = root.winfo_screenheight()
-        root.destroy()
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(base_dir, 'assets', 'icons', 'ime.png')
+        self.logo_raw = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
+        self.logo = None
         
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_FREERATIO)
-        
-        # Redimensiona automaticamente para a resolução detectada
-        cv2.resizeWindow(self.window_name, screen_w, screen_h)"""
-
+        if self.logo_raw is not None:
+            target_height = int(h * 0.08) 
+            aspect_ratio = self.logo_raw.shape[1] / self.logo_raw.shape[0]
+            target_width = int(target_height * aspect_ratio * 1.1)
+            self.logo = cv2.resize(self.logo_raw, (target_width, target_height), interpolation=cv2.INTER_AREA)
+        else:
+            print(f"[AVISO] Logo não encontrada no caminho: {logo_path}")
+            
         root = tk.Tk()
         self.screen_w = root.winfo_screenwidth()
         self.screen_h = root.winfo_screenheight()
@@ -131,6 +134,8 @@ class ExhibitionApp:
                 print(f"Error in {current_effect.name}: {e}")
                 output = frame
 
+            display_frame = output.copy()
+
             # --- HUD & Status Logic ---
             # Pega o nome do modo atual da nossa lista
             method_label = f"MODO: {self.mask_modes_names[self.bg_processor.mode]}"
@@ -144,14 +149,27 @@ class ExhibitionApp:
             full_status = " | ".join(status_parts)
 
             self.hud.render(
-                output, 
+                display_frame, 
                 current_effect.name, 
                 method_label, 
                 remaining_time=(self.effect_duration - elapsed),
                 extra_info=full_status
             )
 
-            cv2.imshow(self.window_name, output)
+            if self.logo is not None:
+                out_h, out_w = display_frame.shape[:2]
+                logo_h, logo_w = self.logo.shape[:2]
+                
+                # Margem relativa: 3% da largura e altura da tela
+                margin_x = int(out_w * 0.02)
+                margin_y = int(out_h * 0.02)
+                
+                x_pos = margin_x
+                y_pos = out_h - logo_h - margin_y
+                
+                self._overlay_transparent(display_frame, self.logo, x_pos, y_pos)
+
+            cv2.imshow(self.window_name, display_frame)
             
             if self.handle_input():
                 break
@@ -209,6 +227,32 @@ class ExhibitionApp:
         self.bg_processor.weight_cb = cb_val / 100.0
         
         print(f"Pesos Atualizados -> Y: {self.bg_processor.weight_y}, Cr: {self.bg_processor.weight_cr}, Cb: {self.bg_processor.weight_cb}")
+
+    def _overlay_transparent(self, background, overlay, x, y):
+        """Cola uma imagem com canal Alpha (transparência) sobre o fundo."""
+        if overlay is None:
+            return
+        
+        h, w = background.shape[:2]
+        sh, sw = overlay.shape[:2]
+
+        y1, y2 = max(0, y), min(h, y + sh)
+        x1, x2 = max(0, x), min(w, x + sw)
+
+        oy1, oy2 = max(0, -y), sh - max(0, (y + sh) - h)
+        ox1, ox2 = max(0, -x), sw - max(0, (x + sw) - w)
+
+        # Retorna se a imagem estiver completamente fora da tela
+        if y1 >= y2 or x1 >= x2:
+            return
+
+        # Mistura a imagem usando o canal Alpha se ele existir (PNG transparente)
+        if overlay.shape[2] == 4:
+            alpha = overlay[oy1:oy2, ox1:ox2, 3:4] / 255.0
+            background[y1:y2, x1:x2] = (alpha * overlay[oy1:oy2, ox1:ox2, :3] + 
+                                        (1.0 - alpha) * background[y1:y2, x1:x2])
+        else:
+            background[y1:y2, x1:x2] = overlay[oy1:oy2, ox1:ox2]
 
 if __name__ == "__main__":
     app = ExhibitionApp()
