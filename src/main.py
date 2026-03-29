@@ -35,32 +35,42 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
-            KamehamehaEffect(),
-            #KamehamehaEffect2(),
-            ShatteredGlassEffect(),
-            NavierStokesFluidEffect(),
-            NavierStokesRealityEffect(),
-            GlowingWaveEffect(),
-            #PopArtEchoesEffect(),
-            #MysticTrianglesEffect(),
             ShowMaskEffect(),
-            MathChromaKeyEffect(),
-            FlowBenderEffect(),
-            NeonSkeletonEffect(color=(255, 50, 255)),
-            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
-            CartoonEffect(),     # Adds a comic-book aesthetic
-            NegativeEffect(),    # Classic high-contrast 
-            WaveEquationEffect(damping=0.98),
-            DelaunayConstellationEffect(max_points=200),
-            KineticParticleEffect(),
-            CyberGlitchEffect(),
-            NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
-            TimeTunnelEffect(max_clones=10, frame_delay=15),
+            ######## FILTROS
+            #HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
+            #CartoonEffect(),     # Adds a comic-book aesthetic
+            #NegativeEffect(),    # Classic high-contrast
+            #CyberGlitchEffect(),
+
+            ######### POSE
+            #KamehamehaEffect(),
+            #KamehamehaEffect2(),
+            #FlowBenderEffect(),
+            #NeonSkeletonEffect(color=(255, 50, 255)),
+            #NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
+
+            ######### CLONES
+            #TimeTunnelEffect(max_clones=10, frame_delay=15),
             #DrosteTunnelEffect(scale_factor=0.94), # Faster recession
-            DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
-            FluidPaintEffect(decay=0.985),
-            GridWarpEffect(step=40, amplitude=10.0),
-            ArrowEffect(step=30)
+            #DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
+
+            ######## FLUID - fixed
+            #FluidPaintEffect(decay=0.985),
+            #NavierStokesFluidEffect(),
+            #NavierStokesRealityEffect(),
+            #WaveEquationEffect(damping=0.98),
+            #GlowingWaveEffect(),
+
+            ######## GEOMETRY
+            #GridWarpEffect(step=40, amplitude=10.0),
+            ArrowEffect(step=30),
+            #ShatteredGlassEffect(),
+            #DelaunayConstellationEffect(max_points=200),
+
+            ######## OTHERS
+            #KineticParticleEffect(),
+            #MathChromaKeyEffect(),
+
         ]
         self.current_idx = 0
         self.effect_duration = 30.0
