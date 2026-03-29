@@ -152,3 +152,92 @@ class DelaunayConstellationEffect(BaseEffect):
     def reset(self):
         self.canvas = None
 
+import cv2
+import numpy as np
+from .baseEffect import BaseEffect
+
+class ShatteredGlassEffect(BaseEffect):
+    """
+    Simula uma tela de vidro estilhaçada. 
+    Usa o Diagrama de Voronoi para criar os cacos e aplica refração e espelhamento aleatórios em cada um.
+    """
+    def __init__(self, num_shards=18, max_offset=20):
+        super().__init__("SHATTERED_GLASS")
+        self.num_shards = num_shards
+        self.max_offset = max_offset
+        self.map_x = None
+        self.map_y = None
+        self.cracks_canvas = None
+
+    def _generate_shards(self, h, w):
+        """Gera os cacos de vidro e os cálculos de distorção apenas uma vez para economizar CPU."""
+        grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
+        self.map_x = grid_x.astype(np.float32)
+        self.map_y = grid_y.astype(np.float32)
+
+        # 1. Sorteia os "centros" de cada caco de vidro
+        pts = np.random.randint(0, [w, h], size=(self.num_shards, 2))
+
+        # 2. Calcula as regiões de Voronoi (Qual pixel pertence a qual caco)
+        min_dist = np.full((h, w), np.inf, dtype=np.float32)
+        regions = np.zeros((h, w), dtype=np.uint8)
+
+        for i, (px, py) in enumerate(pts):
+            dist = (self.map_x - px)**2 + (self.map_y - py)**2
+            mask = dist < min_dist
+            min_dist[mask] = dist[mask]
+            regions[mask] = i
+
+        # 3. Aplica espelhamento e deslocamento DENTRO de cada caco
+        for i, (px, py) in enumerate(pts):
+            shard_mask = (regions == i)
+
+            # Refração: deslocamento aleatório
+            dx = np.random.uniform(-self.max_offset, self.max_offset)
+            dy = np.random.uniform(-self.max_offset, self.max_offset)
+
+            # Espelhamento: 35% de chance de espelhar horizontal ou verticalmente
+            flip_x = -1 if np.random.random() > 0.65 else 1
+            flip_y = -1 if np.random.random() > 0.65 else 1
+
+            self.map_x[shard_mask] = px + (self.map_x[shard_mask] - px) * flip_x + dx
+            self.map_y[shard_mask] = py + (self.map_y[shard_mask] - py) * flip_y + dy
+
+        # 4. Desenha as "rachaduras" do vidro usando gradiente morfológico
+        kernel = np.ones((3, 3), np.uint8)
+        edges = cv2.morphologyEx(regions, cv2.MORPH_GRADIENT, kernel)
+        
+        # Pinta as bordas das rachaduras de branco/cinza claro
+        cracks_mask = np.where(edges > 0, 200, 0).astype(np.uint8)
+        self.cracks_canvas = cv2.cvtColor(cracks_mask, cv2.COLOR_GRAY2BGR)
+
+    def apply(self, frame, flow, mask, **kwargs):
+        h, w = frame.shape[:2]
+
+        # Gera o vidro quebrado no primeiro frame ou se o usuário apertar 'r' (reset)
+        if self.map_x is None or self.map_x.shape[:2] != (h, w):
+            self._generate_shards(h, w)
+
+        # Destaca a pessoa escurecendo o fundo (para manter o foco no usuário)
+        bg_mask = cv2.bitwise_not(mask)
+        frame_darkened = frame.copy()
+        frame_darkened[bg_mask == 255] = (frame_darkened[bg_mask == 255] * 0.3).astype(np.uint8)
+
+        # Quebra a imagem de acordo com o mapa de distorção gerado
+        shattered_frame = cv2.remap(
+            frame_darkened, 
+            self.map_x, 
+            self.map_y, 
+            interpolation=cv2.INTER_LINEAR, 
+            borderMode=cv2.BORDER_REFLECT
+        )
+
+        # Sobrepõe as rachaduras brilhantes por cima da imagem quebrada
+        result = cv2.add(shattered_frame, self.cracks_canvas)
+        return result
+
+    def reset(self):
+        # Limpar os mapas faz com que o vidro "quebre" em um padrão totalmente novo!
+        self.map_x = None
+        self.map_y = None
+        self.cracks_canvas = None

@@ -6,10 +6,10 @@ import tkinter as tk
 from core.optFlow import OpticalFlowEngine
 from core.background import BackgroundProcessor
 from core.pose import PoseProcessor
-from effects.pose_effects import FlowBenderEffect, NeonSkeletonEffect
+from effects.pose_effects import FlowBenderEffect, NeonSkeletonEffect, KamehamehaEffect, KamehamehaEffect2
 from effects.overlay import MathChromaKeyEffect
-from effects.geometry import ArrowEffect, GridWarpEffect, DelaunayConstellationEffect
-from effects.physics import WaveEquationEffect, KineticParticleEffect, FluidPaintEffect
+from effects.geometry import ArrowEffect, GridWarpEffect, DelaunayConstellationEffect, ShatteredGlassEffect
+from effects.physics import WaveEquationEffect, KineticParticleEffect, FluidPaintEffect, GlowingWaveEffect, NavierStokesFluidEffect, NavierStokesRealityEffect
 from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect, CyberGlitchEffect, NeonSilhouetteEffect
 from effects.temporal import TimeTunnelEffect, DrosteTunnelEffect
 from effects.debug import ShowMaskEffect
@@ -18,7 +18,7 @@ from utils.hud import HUD
 class ExhibitionApp:
     def __init__(self):
         # 1. Initialize Camera
-        self.cap = cv2.VideoCapture(0) # FIXME
+        self.cap = cv2.VideoCapture(4) # FIXME
         ret, frame = self.cap.read()
         if not ret: raise RuntimeError("Could not initialize camera.")
         
@@ -35,6 +35,14 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
+            KamehamehaEffect(),
+            #KamehamehaEffect2(),
+            ShatteredGlassEffect(),
+            NavierStokesFluidEffect(),
+            NavierStokesRealityEffect(),
+            GlowingWaveEffect(),
+            #PopArtEchoesEffect(),
+            #MysticTrianglesEffect(),
             ShowMaskEffect(),
             MathChromaKeyEffect(),
             FlowBenderEffect(),
@@ -83,13 +91,8 @@ class ExhibitionApp:
         self.target_ratio = self.screen_w / self.screen_h
         root.destroy() 
 
-        # Como vamos enviar a imagem já na proporção certa, não precisamos mais do FREERATIO
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_GUI_NORMAL)
         cv2.resizeWindow(self.window_name, self.screen_w, self.screen_h)
-
-        #cv2.createTrackbar("Peso Y", self.window_name, 30, 300, self.update_weights)
-        #cv2.createTrackbar("Peso Cr", self.window_name, 120, 300, self.update_weights)
-        #cv2.createTrackbar("Peso Cb", self.window_name, 120, 300, self.update_weights)
 
     def run(self):
         while True:
@@ -213,21 +216,6 @@ class ExhibitionApp:
             
         cv2.destroyAllWindows()
         
-    def update_weights(self, val):
-        """Callback chamado sempre que um slider é movido pelo mouse."""
-        # Lê os valores atuais (0 a 300) da janela
-        y_val = cv2.getTrackbarPos("Peso Y", self.window_name)
-        cr_val = cv2.getTrackbarPos("Peso Cr", self.window_name)
-        cb_val = cv2.getTrackbarPos("Peso Cb", self.window_name)
-        
-        # Divide por 100 para voltar a ter casas decimais (ex: 120 vira 1.2)
-        # e atualiza o processador de background
-        self.bg_processor.weight_y = y_val / 100.0
-        self.bg_processor.weight_cr = cr_val / 100.0
-        self.bg_processor.weight_cb = cb_val / 100.0
-        
-        print(f"Pesos Atualizados -> Y: {self.bg_processor.weight_y}, Cr: {self.bg_processor.weight_cr}, Cb: {self.bg_processor.weight_cb}")
-
     def _overlay_transparent(self, background, overlay, x, y):
         """Cola uma imagem com canal Alpha (transparência) sobre o fundo."""
         if overlay is None:
@@ -249,8 +237,7 @@ class ExhibitionApp:
         # Mistura a imagem usando o canal Alpha se ele existir (PNG transparente)
         if overlay.shape[2] == 4:
             alpha = overlay[oy1:oy2, ox1:ox2, 3:4] / 255.0
-            background[y1:y2, x1:x2] = (alpha * overlay[oy1:oy2, ox1:ox2, :3] + 
-                                        (1.0 - alpha) * background[y1:y2, x1:x2])
+            background[y1:y2, x1:x2] = (alpha * overlay[oy1:oy2, ox1:ox2, :3] + (1.0 - alpha) * background[y1:y2, x1:x2])
         else:
             background[y1:y2, x1:x2] = overlay[oy1:oy2, ox1:ox2]
 
