@@ -43,8 +43,8 @@ class ExhibitionApp:
             #CyberGlitchEffect(),
 
             ######### POSE
-            #KamehamehaEffect(),
-            #KamehamehaEffect2(),
+            KamehamehaEffect(),
+            KamehamehaEffect2(),
             #FlowBenderEffect(),
             #NeonSkeletonEffect(color=(255, 50, 255)),
             #NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
@@ -61,13 +61,13 @@ class ExhibitionApp:
             #WaveEquationEffect(damping=0.98),
             #GlowingWaveEffect(),
 
-            ######## GEOMETRY
+            ######## GEOMETRY - good
             #GridWarpEffect(step=40, amplitude=10.0),
             ArrowEffect(step=30),
             #ShatteredGlassEffect(),
             #DelaunayConstellationEffect(max_points=200),
 
-            ######## OTHERS
+            ######## OTHERS 
             #KineticParticleEffect(),
             #MathChromaKeyEffect(),
 

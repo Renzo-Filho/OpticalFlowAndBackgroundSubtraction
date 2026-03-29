@@ -1,52 +1,60 @@
+import math
 import cv2
 import numpy as np
 import random
+import time
+import os
+import pygame
 from .baseEffect import BaseEffect
+from collections import deque
 
 class FlowBenderEffect(BaseEffect):
-    def __init__(self, num_particles=500): # Aumentei um pouco o limite
+    def __init__(self, num_particles=500): 
         super().__init__("FLOW_BENDER")
-        # Estado: [x, y, vx, vy, life, max_life] <-- Adicionamos max_life para o cálculo de escala
         self.particles = np.zeros((num_particles, 6), dtype=np.float32) 
 
     def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
         canvas = np.zeros_like(frame)
-
-        # Resgata o pose do kwargs (já que agora usamos **kwargs em tudo)
         pose = kwargs.get('pose', None)
 
-        # 1. ENCONTRA AS MÃOS USANDO MEDIA PIPE POSE
+        # Margem de segurança na borda inferior (15% da altura da tela)
+        margin_bottom = int(h * 0.85)
+
+        # 1. ENCONTRA AS MÃOS VALIDANDO COM A MÁSCARA E MARGEM
         hands_coords = []
         if pose is not None:
-            # Pontos 15 e 16 são os pulsos. (Opcional: 19 e 20 são as pontas dos indicadores)
-            for idx in (18,17,19,20):#(15, 16): 
+            for idx in (18,17,19,20):
                 landmark = pose[idx]
                 if landmark.presence > 0.5: 
                     hx, hy = int(landmark.x * w), int(landmark.y * h)
-                    hands_coords.append((hx, hy))
+                    
+                    # Trava de segurança para não acessar um pixel fora do array
+                    hx = np.clip(hx, 0, w - 1)
+                    hy = np.clip(hy, 0, h - 1)
+                    
+                    # Condição 1: Longe da borda inferior
+                    # Condição 2: O pixel correspondente à mão deve estar dentro da máscara da pessoa ativa
+                    if hy < margin_bottom and mask[hy, hx] > 127:
+                        hands_coords.append((hx, hy))
 
         # 2. GERA PARTÍCULAS "GORDAS" NA ÁREA DAS MÃOS
         if hands_coords:
             dead_idx = np.where(self.particles[:, 4] <= 0)[0]
-            spawn_count = min(len(dead_idx), 25) # Quantidade de emissão por frame
+            spawn_count = min(len(dead_idx), 25) 
             
             for i in range(spawn_count):
                 idx = dead_idx[i]
                 hand_x, hand_y = random.choice(hands_coords)
                 
-                # Espalhamento maior para preencher a mão inteira (raio de ~30 pixels)
                 self.particles[idx, 0] = hand_x + random.uniform(-30, 30)
                 self.particles[idx, 1] = hand_y + random.uniform(-30, 30)
-                
-                # Explosão inicial leve para os lados
                 self.particles[idx, 2] = random.uniform(-3, 3)
                 self.particles[idx, 3] = random.uniform(-3, 3)
                 
-                # Vida variável
                 life = random.uniform(25, 45)
                 self.particles[idx, 4] = life
-                self.particles[idx, 5] = life # Salva a vida inicial máxima
+                self.particles[idx, 5] = life 
 
         # 3. MOVE AS PARTÍCULAS USANDO O OPTICAL FLOW
         active = self.particles[:, 4] > 0
@@ -54,19 +62,16 @@ class FlowBenderEffect(BaseEffect):
             px = np.clip(self.particles[active, 0].astype(int), 0, w - 1)
             py = np.clip(self.particles[active, 1].astype(int), 0, h - 1)
 
-            # O Vento: Lê a direção do Optical Flow
             flow_vectors = flow[py, px]
             
-            # Adiciona a força do Flow e aplica atrito (0.85 para ser mais fluido)
             self.particles[active, 2] = (self.particles[active, 2] * 0.85) + (flow_vectors[:, 0] * 1.5)
             self.particles[active, 3] = (self.particles[active, 3] * 0.85) + (flow_vectors[:, 1] * 1.5)
 
-            # Move e envelhece
             self.particles[active, 0] += self.particles[active, 2]
-            self.particles[active, 1] += self.particles[active, 3] - 2.5 # Sobe um pouco mais rápido como fogo
+            self.particles[active, 1] += self.particles[active, 3] - 2.5 
             self.particles[active, 4] -= 1
 
-            # 4. RENDERIZAÇÃO GORDA E EM CAMADAS
+            # 4. RENDERIZAÇÃO
             render_data = self.particles[active]
             
             for pt_data in render_data:
@@ -74,30 +79,19 @@ class FlowBenderEffect(BaseEffect):
                 life, max_life = pt_data[4], pt_data[5]
                 
                 if 0 <= x < w and 0 <= y < h:
-                    # Calcula o tamanho (Nasce grande, morre pequena)
                     scale = life / max_life
-                    # Raio base enorme (até 35 pixels)
                     radius = int(35 * scale) 
                     
                     if radius > 0:
-                        # Camada 1: Aura expansiva (Vermelho/Laranja escuro)
                         cv2.circle(canvas, (x, y), radius, (0, 70, 200), -1)
-                        # Camada 2: Miolo de energia (Amarelo/Branco brilhante)
                         cv2.circle(canvas, (x, y), int(radius * 0.4), (150, 255, 255), -1)
 
-        # 5. EFEITO DE BLOOM (Brilho suave ao redor das partículas combinadas)
-        # O desfoque funde as esferas, parecendo um fluido de energia contínuo
         canvas = cv2.GaussianBlur(canvas, (15, 15), 0)
-
         return cv2.add(frame, canvas)
 
     def reset(self):
         self.particles[:, 4] = 0
-
-import cv2
-import numpy as np
-from .baseEffect import BaseEffect
-
+        
 class NeonSkeletonEffect(BaseEffect):
     """
     Rastreia a estrutura óssea do usuário e desenha um esqueleto de neon.
@@ -161,13 +155,6 @@ class NeonSkeletonEffect(BaseEffect):
     def reset(self):
         self.canvas = None
 
-import cv2
-import numpy as np
-import math
-import time
-from collections import deque
-from .baseEffect import BaseEffect
-
 class PopArtEchoesEffect(BaseEffect):
     """
     Deixa um rastro de clones estáticos preenchidos com cores sólidas e vibrantes,
@@ -228,7 +215,6 @@ class PopArtEchoesEffect(BaseEffect):
 
     def reset(self):
         self.buffer.clear()
-
 
 class MysticTrianglesEffect(BaseEffect):
     """
@@ -306,14 +292,6 @@ class MysticTrianglesEffect(BaseEffect):
 
     def reset(self):
         pass
-
-import math
-import cv2
-import numpy as np
-import random
-import os
-import pygame
-from .baseEffect import BaseEffect
 
 class KamehamehaEffect(BaseEffect):
     def __init__(self, charge_rate=3, max_charge=100):
@@ -492,12 +470,6 @@ class KamehamehaEffect(BaseEffect):
         self.blast_angle = -math.pi / 2
         self._stop_charge_audio()
 
-import math
-import cv2
-import numpy as np
-import random
-from .baseEffect import BaseEffect
-
 class KamehamehaEffect2(BaseEffect):
     def __init__(self, charge_rate=3, max_charge=100):
         super().__init__("KAMEHAMEHA")
@@ -517,6 +489,8 @@ class KamehamehaEffect2(BaseEffect):
         canvas = np.zeros_like(frame)
         pose = kwargs.get('pose', None)
 
+        margin_bottom = int(h * 0.9)
+
         if pose is not None:
             l_hand = pose[19] 
             r_hand = pose[20] 
@@ -524,69 +498,79 @@ class KamehamehaEffect2(BaseEffect):
             if l_hand.presence > 0.5 and r_hand.presence > 0.5:
                 lx, ly = int(l_hand.x * w), int(l_hand.y * h)
                 rx, ry = int(r_hand.x * w), int(r_hand.y * h)
+
+                lx = np.clip(lx, 0, w - 1)
+                ly = np.clip(ly, 0, h - 1)
+                rx = np.clip(rx, 0, w - 1)
+                ry = np.clip(ry, 0, h - 1)
+
+                valid_l = ly < margin_bottom and mask[ly, lx] > 127
+                valid_r = ry < margin_bottom and mask[ry, rx] > 127
+
+                if valid_l and valid_r:
                 
-                dist = math.hypot(lx - rx, ly - ry)
-                mid_x, mid_y = (lx + rx) // 2, (ly + ry) // 2
-                
-                # 1. Rastreia o centro das mãos em uma janela de 5 frames
-                self.hand_centers.append((mid_x, mid_y))
-                if len(self.hand_centers) > 5:
-                    self.hand_centers.pop(0)
+                    dist = math.hypot(lx - rx, ly - ry)
+                    mid_x, mid_y = (lx + rx) // 2, (ly + ry) // 2
+                    
+                    # 1. Rastreia o centro das mãos em uma janela de 5 frames
+                    self.hand_centers.append((mid_x, mid_y))
+                    if len(self.hand_centers) > 5:
+                        self.hand_centers.pop(0)
 
-                # 2. Calcula a velocidade das mãos (Distância entre o frame atual e o de 5 frames atrás)
-                speed = 0
-                if len(self.hand_centers) == 5:
-                    old_x, old_y = self.hand_centers[0]
-                    speed = math.hypot(mid_x - old_x, mid_y - old_y)
+                    # 2. Calcula a velocidade das mãos (Distância entre o frame atual e o de 5 frames atrás)
+                    speed = 0
+                    if len(self.hand_centers) == 5:
+                        old_x, old_y = self.hand_centers[0]
+                        speed = math.hypot(mid_x - old_x, mid_y - old_y)
 
-                # Limiares de Ação
-                charge_threshold = w * 0.30  # Bem mais flexível para carregar (30% da tela)
-                fire_speed_threshold = h * 0.05  # Precisa mover as mãos rápido (8% da altura da tela de uma vez)
+                    # Limiares de Ação
+                    charge_threshold = w * 0.30  # Bem mais flexível para carregar (30% da tela)
+                    fire_speed_threshold = h * 0.08  # Precisa mover as mãos rápido (8% da altura da tela de uma vez)
 
-                # --- MÁQUINA DE ESTADOS ---
-                if not self.is_firing:
-                    if dist < charge_threshold:
-                        # CARREGANDO
-                        self.charge_level = min(self.charge_level + self.charge_rate, self.max_charge)
-                        
-                        # GATILHO DE DISPARO: Carga cheia + Movimento brusco das mãos juntas
-                        if self.charge_level == self.max_charge and speed > fire_speed_threshold:
-                            self.is_firing = True
-                            self.hand_centers.clear() # Limpa o histórico para evitar tiros duplos
+                    # --- MÁQUINA DE ESTADOS ---
+                    if not self.is_firing:
+                        if dist < charge_threshold:
+                            # CARREGANDO
+                            self.charge_level = min(self.charge_level + self.charge_rate, self.max_charge)
+                            
+                            # GATILHO DE DISPARO: Carga cheia + Movimento brusco das mãos juntas
+                            if self.charge_level == self.max_charge and speed > fire_speed_threshold:
+                                self.is_firing = True
+                                self.hand_centers.clear() # Limpa o histórico para evitar tiros duplos
+                        else:
+                            # Se afastar as mãos, a energia se desfaz devagar
+                            self.charge_level = max(self.charge_level - (self.charge_rate * 2), 0)
                     else:
-                        # Se afastar as mãos, a energia se desfaz devagar
-                        self.charge_level = max(self.charge_level - (self.charge_rate * 2), 0)
-                else:
-                    # ATIRANDO (Drena a carga)
-                    self.charge_level -= (self.charge_rate * 1.5)
-                    if self.charge_level <= 0:
-                        self.is_firing = False
-                        self.charge_level = 0
+                        # ATIRANDO (Drena a carga)
+                        self.charge_level -= (self.charge_rate * 1.5)
+                        if self.charge_level <= 0:
+                            self.is_firing = False
+                            self.charge_level = 0
 
-                # --- RENDERIZAÇÃO ---
-                if self.charge_level > 0 and not self.is_firing:
-                    # Esfera carregando
-                    radius = int((self.charge_level / self.max_charge) * 90)
-                    noise = random.randint(-8, 8)
-                    cv2.circle(canvas, (mid_x, mid_y), radius + 20 + noise, self.color_aura, -1)
-                    cv2.circle(canvas, (mid_x, mid_y), int(radius * 0.6), self.color_core, -1)
-                
-                elif self.is_firing:
-                    # Feixe sustentado
-                    beam_width = int((self.charge_level / self.max_charge) * 120) + random.randint(10, 30)
+                    # --- RENDERIZAÇÃO ---
+                    if self.charge_level > 0 and not self.is_firing:
+                        # Esfera carregando
+                        radius = int((self.charge_level / self.max_charge) * 90)
+                        noise = random.randint(-8, 8)
+                        cv2.circle(canvas, (mid_x, mid_y), radius + 20 + noise, self.color_aura, -1)
+                        cv2.circle(canvas, (mid_x, mid_y), int(radius * 0.6), self.color_core, -1)
                     
-                    pts = np.array([
-                        [mid_x - beam_width, mid_y],
-                        [mid_x + beam_width, mid_y],
-                        [mid_x + beam_width*3, 0],
-                        [mid_x - beam_width*3, 0]
-                    ], np.int32)
-                    
-                    cv2.fillPoly(canvas, [pts], self.color_aura)
-                    cv2.fillPoly(canvas, [pts], self.color_core)
-                    
-                    cv2.circle(canvas, (mid_x, mid_y), beam_width, self.color_aura, -1)
-                    cv2.circle(canvas, (mid_x, mid_y), int(beam_width * 0.6), self.color_core, -1)
+                    elif self.is_firing:
+                        # Feixe sustentado
+                        beam_width = int((self.charge_level / self.max_charge) * 120) + random.randint(10, 30)
+                        
+                        pts = np.array([
+                            [mid_x - beam_width, mid_y],
+                            [mid_x + beam_width, mid_y],
+                            [mid_x + beam_width*3, 0],
+                            [mid_x - beam_width*3, 0]
+                        ], np.int32)
+                        
+                        cv2.fillPoly(canvas, [pts], self.color_aura)
+                        cv2.fillPoly(canvas, [pts], self.color_core)
+                        
+                        cv2.circle(canvas, (mid_x, mid_y), beam_width, self.color_aura, -1)
+                        cv2.circle(canvas, (mid_x, mid_y), int(beam_width * 0.6), self.color_core, -1)
 
             else:
                 # Perdeu as mãos da tela
