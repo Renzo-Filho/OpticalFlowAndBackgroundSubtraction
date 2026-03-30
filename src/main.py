@@ -70,7 +70,7 @@ class ExhibitionApp:
 
             ######## OTHERS 
             KineticParticleEffect(),
-            #MathChromaKeyEffect(),
+            MathChromaKeyEffect(),
 
         ]
         self.current_idx = 0

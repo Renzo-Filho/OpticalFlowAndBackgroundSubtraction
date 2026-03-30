@@ -524,7 +524,7 @@ class KamehamehaEffect2(BaseEffect):
                         speed = math.hypot(mid_x - old_x, mid_y - old_y)
 
                     # Limiares de Ação
-                    charge_threshold = w * 0.30  # Bem mais flexível para carregar (30% da tela)
+                    charge_threshold = w * 0.25  # Bem mais flexível para carregar (30% da tela)
                     fire_speed_threshold = h * 0.08  # Precisa mover as mãos rápido (8% da altura da tela de uma vez)
 
                     # --- MÁQUINA DE ESTADOS ---
