@@ -30,45 +30,46 @@ class ExhibitionApp:
         # HUD names
         self.mask_modes_names = [
             "Static: YCrCb + Otsu", 
-            "AI: Selfie Segmenter"
+            "AI: Selfie Segmenter",
+            "AI: Pose Segmenter"
         ]
         
         # 3. Effects Playlist
         self.effects = [
             ShowMaskEffect(),
             ######## FILTROS
-            #HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
-            #CartoonEffect(),     # Adds a comic-book aesthetic
-            #NegativeEffect(),    # Classic high-contrast
+            HeatmapEffect(),     # Adds a colorful, thermal-camera vibe
+            CartoonEffect(),     # Adds a comic-book aesthetic
+            NegativeEffect(),    # Classic high-contrast
             #CyberGlitchEffect(),
 
             ######### POSE
-            KamehamehaEffect(),
+            #KamehamehaEffect(),
             KamehamehaEffect2(),
-            #FlowBenderEffect(),
-            #NeonSkeletonEffect(color=(255, 50, 255)),
-            #NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
+            FlowBenderEffect(),
+            NeonSkeletonEffect(color=(255, 50, 255)),
+            NeonSilhouetteEffect(color=(0, 255, 255)), # Amarelo, ou (255, 255, 0) para Ciano
 
             ######### CLONES
-            #TimeTunnelEffect(max_clones=10, frame_delay=15),
+            TimeTunnelEffect(max_clones=10, frame_delay=15),
             #DrosteTunnelEffect(scale_factor=0.94), # Faster recession
-            #DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
+            DrosteTunnelEffect(scale_factor=0.98), # Slow, hypnotic recession
 
             ######## FLUID - fixed
-            #FluidPaintEffect(decay=0.985),
-            #NavierStokesFluidEffect(),
-            #NavierStokesRealityEffect(),
-            #WaveEquationEffect(damping=0.98),
-            #GlowingWaveEffect(),
+            FluidPaintEffect(decay=0.985),
+            NavierStokesFluidEffect(),
+            NavierStokesRealityEffect(),
+            WaveEquationEffect(damping=0.98),
+            GlowingWaveEffect(),
 
             ######## GEOMETRY - good
-            #GridWarpEffect(step=40, amplitude=10.0),
+            GridWarpEffect(step=40, amplitude=8.0),
             ArrowEffect(step=30),
-            #ShatteredGlassEffect(),
-            #DelaunayConstellationEffect(max_points=200),
+            ShatteredGlassEffect(),
+            DelaunayConstellationEffect(max_points=200),
 
             ######## OTHERS 
-            #KineticParticleEffect(),
+            KineticParticleEffect(),
             #MathChromaKeyEffect(),
 
         ]
@@ -128,10 +129,10 @@ class ExhibitionApp:
             t0 = time.time()
             flow = self.flow_engine.update(frame)
             t1 = time.time()
-            
-            mask = self.bg_processor.get_mask(frame, flow)
 
             pose = self.pose_processor.process(frame)
+
+            mask = self.bg_processor.get_mask(frame, flow, pose_mask=self.pose_processor.current_mask)
                         
             # --- Auto Rotation ---
             elapsed = time.time() - self.start_time
@@ -204,7 +205,7 @@ class ExhibitionApp:
         if key in [ord('q'), 27]: return True
         elif key == ord('n'): self.next_effect()
         elif key == ord('l'): self.last_effect()
-        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 2   
+        elif key == ord('m'): self.bg_processor.mode = (self.bg_processor.mode + 1) % 3   
         elif key == ord('b'): self.bg_processor.capture_static_model(self.cap)
         elif key == ord('d'): self.hud.toggle()
         elif key == ord('r'): self.effects[self.current_idx].reset()

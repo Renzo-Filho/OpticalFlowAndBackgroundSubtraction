@@ -7,7 +7,7 @@ import sys
 class PoseProcessor:
     def __init__(self):
         self.current_pose = None
-        self.pose_landmarker = None
+        self.current_mask = None 
         self._init_model()
 
     def get_resource_path(self, relative_path):
@@ -23,11 +23,16 @@ class PoseProcessor:
         VisionRunningMode = mp.tasks.vision.RunningMode
 
         def _save_result(result, output_image: mp.Image, timestamp_ms: int):
-            # Salva os pontos articulares da primeira pessoa detectada
             if result.pose_landmarks:
                 self.current_pose = result.pose_landmarks[0]
             else:
                 self.current_pose = None
+
+            # Extrai a máscara se ela existir
+            if result.segmentation_masks:
+                self.current_mask = result.segmentation_masks[0].numpy_view().copy()
+            else:
+                self.current_mask = None
 
         model_path = self.get_resource_path('assets/models/pose_landmarker_lite.task')
 
@@ -35,6 +40,7 @@ class PoseProcessor:
             options = PoseLandmarkerOptions(
                 base_options=BaseOptions(model_asset_path=model_path),
                 running_mode=VisionRunningMode.LIVE_STREAM,
+                output_segmentation_masks=True,
                 result_callback=_save_result
             )
             self.pose_landmarker = PoseLandmarker.create_from_options(options)
@@ -42,7 +48,6 @@ class PoseProcessor:
             print(f"AVISO: Modelo de Pose não encontrado em -> {model_path}")
 
     def process(self, frame):
-        """Envia o frame para processamento e retorna a última pose calculada."""
         if not self.pose_landmarker:
             return self.current_pose
 

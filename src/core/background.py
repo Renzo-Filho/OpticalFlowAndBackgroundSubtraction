@@ -10,6 +10,7 @@ class BackgroundProcessor:
     # Constantes dos Modos (Agora apenas 2)
     MODE_OTSU = 0
     MODE_AI_SELFIE = 1
+    MODE_AI_POSE = 2
 
     def __init__(self):
         self.mode = self.MODE_AI_SELFIE
@@ -78,14 +79,16 @@ class BackgroundProcessor:
             return True
         return False
 
-    def get_mask(self, frame, flow):
-        """O Cérebro roteador. Chama o método de recorte correto."""
-        if self.mode == self.MODE_OTSU:
-            return self._mask_otsu(frame)
-        elif self.mode == self.MODE_AI_SELFIE:
-            return self._mask_ai(frame)
-            
-        return np.zeros(frame.shape[:2], dtype=np.uint8)
+    def get_mask(self, frame, flow, pose_mask=None):
+            """O Cérebro roteador. Chama o método de recorte correto."""
+            if self.mode == self.MODE_OTSU:
+                return self._mask_otsu(frame)
+            elif self.mode == self.MODE_AI_SELFIE:
+                return self._mask_ai(frame)
+            elif self.mode == self.MODE_AI_POSE:
+                return self._mask_pose(frame, pose_mask)
+                
+            return np.zeros(frame.shape[:2], dtype=np.uint8)
 
     # ==========================================
     # PÓS-PROCESSAMENTO ROBUSTO
@@ -155,6 +158,20 @@ class BackgroundProcessor:
             mask_resized = cv2.resize(self.current_ai_mask, (w, h), interpolation=cv2.INTER_NEAREST)
             # Inverte a máscara (Selfie segmenter usa 0 para pessoa)
             binary_mask = np.where(mask_resized == 0, 255, 0).astype(np.uint8)
+            return self._post_process(binary_mask)
+        else:
+            return np.zeros((h, w), dtype=np.uint8)
+        
+    def _mask_pose(self, frame, pose_mask):
+        h, w = frame.shape[:2]
+        
+        if pose_mask is not None:
+            # Redimensiona para o tamanho da tela
+            mask_resized = cv2.resize(pose_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+            
+            # A máscara do pose é float (0.0 a 1.0). Limiar de 0.4 costuma ser um bom balanço.
+            binary_mask = np.where(mask_resized > 0.4, 255, 0).astype(np.uint8)
+            
             return self._post_process(binary_mask)
         else:
             return np.zeros((h, w), dtype=np.uint8)
