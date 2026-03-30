@@ -84,7 +84,7 @@ class BackgroundProcessor:
             if self.mode == self.MODE_OTSU:
                 return self._mask_otsu(frame)
             elif self.mode == self.MODE_AI_SELFIE:
-                return self._mask_ai(frame)
+                return self._mask_ai(frame, pose_mask)
             elif self.mode == self.MODE_AI_POSE:
                 return self._mask_pose(frame, pose_mask)
                 
@@ -141,9 +141,10 @@ class BackgroundProcessor:
     # ==========================================
     # 2. MÉTODO DE INTELIGÊNCIA ARTIFICIAL (Selfie)
     # ==========================================
-    def _mask_ai(self, frame):
+    def _mask_ai(self, frame, pose_mask=None):
         h, w = frame.shape[:2]
         
+        # 1. PROCESSA O SELFIE SEGMENTER
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
         ts = int(time.time() * 1000)
@@ -154,13 +155,32 @@ class BackgroundProcessor:
         except Exception:
             pass
 
+        # 2. PREPARA A MÁSCARA DO SELFIE (Bordas Perfeitas, mas frágil à luz)
         if self.current_ai_mask is not None:
             mask_resized = cv2.resize(self.current_ai_mask, (w, h), interpolation=cv2.INTER_NEAREST)
-            # Inverte a máscara (Selfie segmenter usa 0 para pessoa)
-            binary_mask = np.where(mask_resized == 0, 255, 0).astype(np.uint8)
-            return self._post_process(binary_mask)
+            # 0 vira 255 (Pessoa), 255 vira 0 (Fundo)
+            selfie_bin = np.where(mask_resized == 0, 255, 0).astype(np.uint8)
         else:
-            return np.zeros((h, w), dtype=np.uint8)
+            selfie_bin = np.zeros((h, w), dtype=np.uint8)
+
+        # 3. PREPARA A MÁSCARA DO POSE E FAZ A FUSÃO
+        if pose_mask is not None:
+            p_mask_resized = cv2.resize(pose_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+            pose_bin = np.where(p_mask_resized > 0.4, 255, 0).astype(np.uint8)
+            
+            # --- A MÁGICA ---
+            # Encolhemos o Pose com Erosão para ele agir apenas como o "miolo/esqueleto".
+            # O tamanho (21, 21) define o quão agressivo é esse encolhimento.
+            kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+            pose_miolo = cv2.erode(pose_bin, kernel_erode, iterations=1)
+            
+            # Junta o Miolo de Segurança (Pose) com as Bordas Finas (Selfie)
+            final_mask = cv2.bitwise_or(selfie_bin, pose_miolo)
+        else:
+            final_mask = selfie_bin
+
+        # 4. LIMPEZA FINAL (O _post_process já lida com a suavização final)
+        return self._post_process(final_mask)
         
     def _mask_pose(self, frame, pose_mask):
         h, w = frame.shape[:2]
