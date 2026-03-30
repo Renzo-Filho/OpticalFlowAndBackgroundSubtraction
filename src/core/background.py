@@ -171,7 +171,7 @@ class BackgroundProcessor:
             # --- A MÁGICA ---
             # Encolhemos o Pose com Erosão para ele agir apenas como o "miolo/esqueleto".
             # O tamanho (21, 21) define o quão agressivo é esse encolhimento.
-            kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))
+            kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
             pose_miolo = cv2.erode(pose_bin, kernel_erode, iterations=1)
             
             # Junta o Miolo de Segurança (Pose) com as Bordas Finas (Selfie)
