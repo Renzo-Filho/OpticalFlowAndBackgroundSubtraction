@@ -37,7 +37,7 @@ class MathChromaKeyEffect(BaseEffect):
             fig.clf()
             fig.patch.set_alpha(0.0) 
             
-            plt.text(0.5, 0.5, f"${tex}$", size=24, color='#00FF44', ha='center', va='center')
+            plt.text(0.5, 0.5, f"${tex}$", size=24, color="#FFFFFF", ha='center', va='center')
             plt.axis('off')
             
             buf = io.BytesIO()
