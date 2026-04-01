@@ -111,14 +111,16 @@ class BackgroundProcessor:
         ]
         
         filtered_mask = np.zeros_like(mask)
+
         if valid_labels:
-            filtered_mask[np.isin(labels, valid_labels)] = 255
+            largest_label = max(valid_labels, key=lambda l: stats[l, cv2.CC_STAT_AREA])
+            filtered_mask[labels == largest_label] = 255
             
         filtered_mask = ndimage.binary_fill_holes(filtered_mask).astype(np.uint8) * 255
 
         kernel_dilation = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         dilated_mask = cv2.dilate(filtered_mask, kernel_dilation, iterations=1)
-        # cv2.GaussianBlur(dilated_mask, (11, 11), 0)
+        #dilated_mask = cv2.GaussianBlur(dilated_mask, (11, 11), 0)
         return dilated_mask
 
     # ==========================================
