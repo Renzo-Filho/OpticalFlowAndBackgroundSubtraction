@@ -174,12 +174,12 @@ class ExhibitionApp:
                 out_h, out_w = display_frame.shape[:2]
                 logo_h, logo_w = self.logo.shape[:2]
                 
-                # Margem relativa: 3% da largura e altura da tela
+                # Margem relativa: 2% da largura e altura da tela
                 margin_x = int(out_w * 0.02)
                 margin_y = int(out_h * 0.02)
                 
                 x_pos = margin_x
-                y_pos = out_h - logo_h - margin_y
+                y_pos = margin_y
                 
                 self._overlay_transparent(display_frame, self.logo, x_pos, y_pos)
 
