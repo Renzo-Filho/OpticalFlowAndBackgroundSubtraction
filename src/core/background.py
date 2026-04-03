@@ -124,11 +124,15 @@ class BackgroundProcessor:
         return dilated_mask
 
     # ==========================================
-    # 1. MÉTODO OTSU (Rápido e Clássico)
+    # 1. MÉTODO OTSU 
     # ==========================================
     def _mask_otsu(self, frame):
         if self.bg_base is None:
             return np.zeros(frame.shape[:2], dtype=np.uint8)
+
+        # Garante que o modelo de fundo tenha exatamente o mesmo tamanho do frame atual
+        if self.bg_base.shape[:2] != frame.shape[:2]:
+            self.bg_base = cv2.resize(self.bg_base, (frame.shape[1], frame.shape[0]))
 
         f_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
         b_ycc = cv2.cvtColor(self.bg_base, cv2.COLOR_BGR2YCrCb)
