@@ -469,7 +469,6 @@ class KamehamehaEffect(BaseEffect):
         self.hand_centers.clear()
         self.blast_angle = -math.pi / 2
         self._stop_charge_audio()
-
 class KamehamehaEffect2(BaseEffect):
     def __init__(self, charge_rate=3, max_charge=100):
         super().__init__("KAMEHAMEHA")
@@ -483,6 +482,8 @@ class KamehamehaEffect2(BaseEffect):
         
         # Histórico para calcular a velocidade do movimento das mãos
         self.hand_centers = [] 
+        # Direção do raio
+        self.blast_angle = -math.pi / 2 # Padrão: apontado para cima (90 graus negativos)
 
     def apply(self, frame, flow, mask, **kwargs):
         h, w = frame.shape[:2]
@@ -519,6 +520,7 @@ class KamehamehaEffect2(BaseEffect):
 
                     # 2. Calcula a velocidade das mãos (Distância entre o frame atual e o de 5 frames atrás)
                     speed = 0
+                    old_x, old_y = mid_x, mid_y
                     if len(self.hand_centers) == 5:
                         old_x, old_y = self.hand_centers[0]
                         speed = math.hypot(mid_x - old_x, mid_y - old_y)
@@ -536,6 +538,29 @@ class KamehamehaEffect2(BaseEffect):
                             # GATILHO DE DISPARO: Carga cheia + Movimento brusco das mãos juntas
                             if self.charge_level == self.max_charge and speed > fire_speed_threshold:
                                 self.is_firing = True
+                                
+                                # --- LEITURA DIRECCIONAL VIA FLUXO ÓPTICO ---
+                                # Recorta uma região de interesse (ROI) ampla ao redor das mãos para ler o vento
+                                y1, y2 = max(0, mid_y - 80), min(h, mid_y + 80)
+                                x1, x2 = max(0, mid_x - 80), min(w, mid_x + 80)
+                                roi_flow = flow[y1:y2, x1:x2]
+                                
+                                if roi_flow.size > 0:
+                                    # Tira a média dos vetores de movimento dessa região
+                                    mean_dx = np.mean(roi_flow[..., 0])
+                                    mean_dy = np.mean(roi_flow[..., 1])
+                                    
+                                    # Misturamos levemente com a cinemática das mãos para blindar contra ruídos da câmera
+                                    kin_dx = mid_x - old_x
+                                    kin_dy = mid_y - old_y
+                                    
+                                    final_dx = (mean_dx * 0.6) + (kin_dx * 0.4)
+                                    final_dy = (mean_dy * 0.6) + (kin_dy * 0.4)
+                                    
+                                    self.blast_angle = math.atan2(final_dy, final_dx)
+                                else:
+                                    self.blast_angle = -math.pi / 2 # Backup: Cima
+
                                 self.hand_centers.clear() # Limpa o histórico para evitar tiros duplos
                         else:
                             # Se afastar as mãos, a energia se desfaz devagar
@@ -556,15 +581,26 @@ class KamehamehaEffect2(BaseEffect):
                         cv2.circle(canvas, (mid_x, mid_y), int(radius * 0.6), self.color_core, -1)
                     
                     elif self.is_firing:
-                        # Feixe sustentado
+                        # Feixe sustentado direcionável
                         beam_width = int((self.charge_level / self.max_charge) * 120) + random.randint(10, 30)
                         
-                        pts = np.array([
-                            [mid_x - beam_width, mid_y],
-                            [mid_x + beam_width, mid_y],
-                            [mid_x + beam_width*3, 0],
-                            [mid_x - beam_width*3, 0]
-                        ], np.int32)
+                        # Comprimento infinito garantido (cruza a tela inteira em qualquer ângulo)
+                        L = max(h, w) * 1.5 
+                        
+                        cos_A = math.cos(self.blast_angle)
+                        sin_A = math.sin(self.blast_angle)
+                        
+                        # Vetor Perpendicular (Normal) para a espessura do raio
+                        nx = -sin_A
+                        ny = cos_A
+                        
+                        # Calcula os 4 pontos do polígono do feixe baseado no ângulo de disparo
+                        p1 = [mid_x - nx * beam_width, mid_y - ny * beam_width]
+                        p2 = [mid_x + nx * beam_width, mid_y + ny * beam_width]
+                        p3 = [mid_x + cos_A * L + nx * (beam_width * 3), mid_y + sin_A * L + ny * (beam_width * 3)]
+                        p4 = [mid_x + cos_A * L - nx * (beam_width * 3), mid_y + sin_A * L - ny * (beam_width * 3)]
+                        
+                        pts = np.array([p1, p2, p3, p4], np.int32)
                         
                         cv2.fillPoly(canvas, [pts], self.color_aura)
                         cv2.fillPoly(canvas, [pts], self.color_core)
@@ -596,5 +632,4 @@ class KamehamehaEffect2(BaseEffect):
         self.charge_level = 0
         self.is_firing = False
         self.hand_centers.clear()
-
-        
+        self.blast_angle = -math.pi / 2

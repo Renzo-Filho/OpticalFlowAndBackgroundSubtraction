@@ -46,6 +46,7 @@ class ExhibitionApp:
             NegativeEffect(),
 
             ######### POSE
+            #KamehamehaEffect(),
             KamehamehaEffect2(),
             FlowBenderEffect(),
             NeonSkeletonEffect(color=(255, 50, 255)),
