@@ -1,7 +1,39 @@
 import cv2
 import numpy as np
 import io
+import os
 from .baseEffect import BaseEffect
+
+class ExhibitionSlideEffect(BaseEffect):
+    """
+    Exibe um slide estático sobrepondo toda a tela.
+    Ideal para introduções ou respiros durante a exposição.
+    """
+    def __init__(self, image_filename="slide.png"):
+        super().__init__("PROJETO")
+        
+        # Constrói o caminho absoluto para a pasta assets
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        image_path = os.path.join(base_dir, 'assets/icons', image_filename)
+        
+        self.slide = cv2.imread(image_path)
+        if self.slide is None:
+            print(f"[AVISO] Slide não encontrado em: {image_path}")
+
+    def apply(self, frame, flow, mask, **kwargs):
+        # Se a imagem não for encontrada, retorna a câmera normal
+        if self.slide is None:
+            return frame
+        
+        #h, w = frame.shape[:2]
+        
+        # Redimensiona o slide para cobrir toda a tela perfeitamente
+        #slide_resized = cv2.resize(self.slide, (w, h), interpolation=cv2.INTER_AREA)
+        #return slide_resized
+        return self.slide.copy()
+
+    def reset(self):
+        pass
 
 class MathChromaKeyEffect(BaseEffect):
     """

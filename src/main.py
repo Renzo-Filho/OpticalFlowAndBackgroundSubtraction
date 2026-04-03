@@ -14,6 +14,7 @@ from effects.physics import WaveEquationEffect, KineticParticleEffect, FluidPain
 from effects.filters import CartoonEffect, HeatmapEffect, NegativeEffect, CyberGlitchEffect, NeonSilhouetteEffect
 from effects.temporal import TimeTunnelEffect, DrosteTunnelEffect
 from effects.debug import ShowMaskEffect
+from effects.overlay import ExhibitionSlideEffect
 from utils.hud import HUD
 
 class ExhibitionApp:
@@ -37,6 +38,7 @@ class ExhibitionApp:
         
         # 3. Effects Playlist
         self.effects = [
+            ExhibitionSlideEffect(),
             ShowMaskEffect(),
             ######## FILTROS
             HeatmapEffect(),
@@ -258,50 +260,42 @@ class ExhibitionApp:
                 output = frame
 
             display_frame = output.copy()
-            out_h, out_w = display_frame.shape[:2]
-            
-            # Margem global de 2% para os overlays
-            margin_x = int(out_w * 0.02)
-            margin_y = int(out_h * 0.02)
-
-            # --- Overlays de Informação e Branding ---
-            
-            # 1. Equação no Top Right 
-            eq_sprite = self.equation_sprites.get(current_effect.name)
-            if eq_sprite is not None:
-                eq_h, eq_w = eq_sprite.shape[:2]
-                eq_x = out_w - eq_w - margin_x
-                eq_y = margin_y
-                self._overlay_transparent(display_frame, eq_sprite, eq_x, eq_y)
-
-            # 2. QR Code no Bottom Right
-            if self.qr_code is not None:
-                qr_h, qr_w = self.qr_code.shape[:2]
-                qr_x = out_w - qr_w - margin_x
-                qr_y = out_h - qr_h - margin_y
-                self._overlay_transparent(display_frame, self.qr_code, qr_x, qr_y)
-
-            # 3. Logo no Top Left
-            if self.logo is not None:
-                self._overlay_transparent(display_frame, self.logo, margin_x, margin_y)
 
             # --- HUD & Status Logic ---
-            method_label = f"MODO: {self.mask_modes_names[self.bg_processor.mode]}"
-            status_parts = []
-            
-            if self.bg_processor.mode == 0 and self.bg_processor.bg_base is None:
-                status_parts.append("No BG captured (Press 'b')")
+            # Só desenha o HUD e a Logo SE o efeito NÃO for o slide de apresentação
+            if current_effect.name != "PROJETO":
+                method_label = f"MODO: {self.mask_modes_names[self.bg_processor.mode]}"
 
-            full_status = " | ".join(status_parts)
+                status_parts = []
+                
+                if self.bg_processor.mode == 0 and self.bg_processor.bg_base is None:
+                    status_parts.append("No BG captured (Press 'b')")
 
-            self.hud.render(
-                display_frame, 
-                current_effect.name, 
-                method_label, 
-                remaining_time=(self.effect_duration - elapsed),
-                extra_info=full_status
-            )
+                full_status = " | ".join(status_parts)
 
+                self.hud.render(
+                    display_frame, 
+                    current_effect.name, 
+                    method_label, 
+                    remaining_time=(self.effect_duration - elapsed),
+                    extra_info=full_status
+                )
+
+                # Desenha a Logo do IME
+                if self.logo is not None:
+                    out_h, out_w = display_frame.shape[:2]
+                    logo_h, logo_w = self.logo.shape[:2]
+                    
+                    # Margem relativa: 2% da largura e altura da tela
+                    margin_x = int(out_w * 0.02)
+                    margin_y = int(out_h * 0.02)
+                    
+                    x_pos = margin_x
+                    y_pos = margin_y
+                    
+                    self._overlay_transparent(display_frame, self.logo, x_pos, y_pos)
+
+            # Exibe na tela (seja a câmera normal ou o slide em altíssima resolução)
             cv2.imshow(self.window_name, display_frame)
             
             if self.handle_input():

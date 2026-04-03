@@ -97,7 +97,7 @@ class NeonSkeletonEffect(BaseEffect):
     Rastreia a estrutura óssea do usuário e desenha um esqueleto de neon.
     Usa um acumulador temporal para deixar um rastro fotográfico (Light Painting).
     """
-    def __init__(self, color=(255, 50, 255), decay=0.85): # Rosa Neon por padrão
+    def __init__(self, color=(255, 50, 255), decay=0.75): # Rosa Neon por padrão
         super().__init__("NEON_SKELETON")
         self.color = color
         self.decay = decay
