@@ -38,7 +38,7 @@ class OpticalFlowEngine:
         flow_small[magnitude < mag_threshold] = 0
         
         # Amplifica o movimento restante
-        #flow_small = flow_small * 1                               #FIXME
+        flow_small = flow_small * 2                               #FIXME
 
         # 4. Upscale de volta para a resolução original
         h, w = gray.shape
