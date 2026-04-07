@@ -246,14 +246,17 @@ class ExhibitionApp:
             pose = self.pose_processor.process(frame)
             mask = self.bg_processor.get_mask(frame, flow, pose_mask=self.pose_processor.current_mask)
                         
+            # --- Render Effect (Puxado para cima) ---
+            current_effect = self.effects[self.current_idx]
+
+            # --- Define o tempo dinamicamente ---
+            tempo_limite = 10.0 if current_effect.name == "PROJETO" else self.effect_duration
+
             # --- Auto Rotation ---
             elapsed = time.time() - self.start_time
-            if elapsed > self.effect_duration:
+            if elapsed > tempo_limite:
                 self.next_effect()
                 elapsed = 0
-
-            # --- Render Effect ---
-            current_effect = self.effects[self.current_idx]
             try:
                 output = current_effect.apply(frame, flow, mask, pose=pose)
             except Exception as e:
