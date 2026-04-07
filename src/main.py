@@ -73,7 +73,7 @@ class ExhibitionApp:
             KineticParticleEffect()
         ]
         self.current_idx = 0
-        self.effect_duration = 30.0
+        self.effect_duration = 15.0
         self.start_time = time.time()
         
         # 4. Window & HUD Setup
