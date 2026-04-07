@@ -41,9 +41,9 @@ class ExhibitionApp:
             ExhibitionSlideEffect(),
             ShowMaskEffect(),
             ######## FILTROS
-            HeatmapEffect(),
-            CartoonEffect(),
-            NegativeEffect(),
+            #HeatmapEffect(),
+            #CartoonEffect(),
+            #NegativeEffect(),
 
             ######### POSE
             #KamehamehaEffect(),
@@ -295,6 +295,17 @@ class ExhibitionApp:
                     y_pos = margin_y
                     
                     self._overlay_transparent(display_frame, self.logo, x_pos, y_pos)
+
+                # Desenha a Equação correspondente (Top Right)
+                if current_effect.name in self.equation_sprites:
+                    sprite = self.equation_sprites[current_effect.name]
+                    sprite_h, sprite_w = sprite.shape[:2]
+                    
+                    # Canto superior direito (respeitando a mesma margem)
+                    eq_x_pos = out_w - sprite_w - margin_x
+                    eq_y_pos = margin_y
+                    
+                    self._overlay_transparent(display_frame, sprite, eq_x_pos, eq_y_pos)
 
             # Exibe na tela (seja a câmera normal ou o slide em altíssima resolução)
             cv2.imshow(self.window_name, display_frame)
